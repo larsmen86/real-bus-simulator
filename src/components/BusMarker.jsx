@@ -17,7 +17,8 @@ const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
     const requestRef = useRef();
     const startTimeRef = useRef();
     const currentPosRef = useRef(null);
-    const nextPointIndexRef = useRef(1); // Use Ref instead of State to avoid stale closures in loop
+    const nextPointIndexRef = useRef(1);
+    const directionRef = useRef(1); // 1 = forward, -1 = backward
 
     // Speed in meters per second (approx 40 km/h = ~11 m/s)
     const SPEED_MPS = 40;
@@ -34,19 +35,34 @@ const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
 
         setPosition(start);
         currentPosRef.current = start;
+
+        // Reset animation state
+        directionRef.current = 1;
         nextPointIndexRef.current = safeIndex + 1;
+
+        const advanceToNextPoint = () => {
+            let nextIdx = nextPointIndexRef.current + directionRef.current;
+
+            // Check bounds and reverse direction if needed
+            if (nextIdx >= routePath.length) {
+                directionRef.current = -1;
+                nextIdx = routePath.length - 2;
+            } else if (nextIdx < 0) {
+                directionRef.current = 1;
+                nextIdx = 1;
+            }
+
+            nextPointIndexRef.current = nextIdx;
+        };
 
         const animate = (time) => {
             if (!startTimeRef.current) startTimeRef.current = time;
 
-            // Current target
-            const targetIndex = nextPointIndexRef.current; // Read from Ref
+            const targetIndex = nextPointIndexRef.current;
 
-            if (targetIndex >= routePath.length) {
-                // Restart loop
-                nextPointIndexRef.current = 1;
-                setPosition(routePath[0]);
-                currentPosRef.current = routePath[0];
+            // Safety check for bounds
+            if (targetIndex < 0 || targetIndex >= routePath.length) {
+                advanceToNextPoint(); // Try to resolve invalid state
                 requestRef.current = requestAnimationFrame(animate);
                 return;
             }
@@ -64,12 +80,12 @@ const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
             if (dist > 100) {
                 setPosition(target);
                 currentPosRef.current = target;
-                nextPointIndexRef.current += 1;
+                advanceToNextPoint();
             } else if (dist < 5) {
                 // Reached target (within 5 meters)
-                nextPointIndexRef.current += 1;
-                currentPosRef.current = target;
                 setPosition(target);
+                currentPosRef.current = target;
+                advanceToNextPoint();
             } else {
                 // Move towards target
                 const moveDist = SPEED_MPS * (1 / 60);
