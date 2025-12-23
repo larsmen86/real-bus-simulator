@@ -12,7 +12,7 @@ export const fetchBusRoute = async () => {
     const query = `
     [out:json][timeout:25];
     (
-      relation["route"="bus"]["ref"~"^(101|102)$"](49.38,7.68,49.48,7.85);
+      relation["route"="bus"]["ref"~"^(101|102|103|104)$"](49.38,7.68,49.48,7.85);
     );
     out body;
     >;
@@ -39,10 +39,20 @@ export const fetchBusRoute = async () => {
         console.log("Overpass Raw Data (101, 102):", data);
         return data;
     } catch (error) {
-        if (error.name === 'AbortError') {
-            throw new Error("Request timed out (Overpass API took too long).");
+        // Fallback to local data
+        console.warn("Overpass API failed (" + error.message + "). Trying local backup...");
+
+        try {
+            const fallbackResponse = await fetch('/bus_data.json');
+            if (!fallbackResponse.ok) {
+                throw new Error("Local fallback failed");
+            }
+            const fallbackData = await fallbackResponse.json();
+            console.log("Loaded cached data:", fallbackData);
+            return fallbackData;
+        } catch (fallbackError) {
+            console.error("Critical: Both API and Fallback failed.", fallbackError);
+            throw error; // Throw original API error if even fallback fails
         }
-        console.error("Failed to fetch bus routes:", error);
-        throw error;
     }
 };

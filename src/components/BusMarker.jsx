@@ -12,10 +12,30 @@ const busIcon = new L.Icon({
 
 const BUS_CAPACITY = 50;
 
-const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop }) => {
+const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop, onStatusUpdate }) => {
     const [position, setPosition] = useState(null);
     const [passengers, setPassengers] = useState(0); // Current onboard count
     const passengersRef = useRef(0);
+
+    // ...
+
+    // Report status changes
+    useEffect(() => {
+        if (onStatusUpdate) {
+            onStatusUpdate(busId, passengers, BUS_CAPACITY);
+        }
+    }, [passengers, busId, onStatusUpdate]);
+
+    // ...
+
+    const handleStop = (stop) => {
+        // ... (existing logic)
+
+        passengersRef.current = newTotal;
+        setPassengers(newTotal); // This triggers the effect above
+
+        // ...
+    };
 
     // Animation refs
     const requestRef = useRef();
@@ -96,8 +116,8 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop 
 
             // 2. Boarding (Request from Parent)
             let boarded = 0;
-            if (onArriveAtStop) {
-                boarded = onArriveAtStop(stop.id, afterAlight, BUS_CAPACITY);
+            if (onArriveAtStopRef.current) {
+                boarded = onArriveAtStopRef.current(stop.id, afterAlight, BUS_CAPACITY);
             }
 
             const newTotal = afterAlight + boarded;

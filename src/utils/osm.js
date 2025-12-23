@@ -159,7 +159,10 @@ export const parseOverpassResponse = (data) => {
             name: relation.tags.name || relation.tags.ref,
             path: fullPath,
             stops: stops,
-            color: relation.tags.ref === '101' ? 'blue' : (relation.tags.ref === '102' ? 'green' : 'gray')
+            color: relation.tags.ref === '101' ? 'blue' :
+                (relation.tags.ref === '102' ? 'green' :
+                    (relation.tags.ref === '103' ? 'orange' :
+                        (relation.tags.ref === '104' ? 'purple' : 'gray')))
         });
     });
 
