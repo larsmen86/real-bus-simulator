@@ -20,42 +20,80 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const BUS_COST = 1000;
+const BUS_COST_STD = 1000;
+const BUS_COST_ART = 2000;
 const TICKET_PRICE = 10;
 const MAX_WAITING_LIMIT = 50;
 
 const MapComponent = () => {
+    const [config, setConfig] = useState(null); // Config state
     const [routes, setRoutes] = useState([]);
-    const [busCounts, setBusCounts] = useState({ '101': 1, '102': 1, '103': 1, '104': 1 });
+
+    // Fleet initialized after config load
+    const [fleet, setFleet] = useState({});
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // ... (Economy & Highscore - No Change) ...
     // Game Economy
-    const [money, setMoney] = useState(0); // Start broke but with assets
+    const [money, setMoney] = useState(0);
     const [totalPassengers, setTotalPassengers] = useState(0);
     const [gameOver, setGameOver] = useState(false);
 
+    // Highscore State
+    const [highscores, setHighscores] = useState([]);
+    const [playerName, setPlayerName] = useState("");
+
+    // Load Highscores
+    useEffect(() => {
+        const stored = localStorage.getItem('busTycoonHighscores');
+        if (stored) {
+            setHighscores(JSON.parse(stored));
+        }
+    }, []);
+
+    const saveHighscore = () => {
+        if (!playerName.trim()) return;
+
+        const newScore = { name: playerName, score: totalPassengers, date: new Date().toLocaleDateString() };
+        const updated = [...highscores, newScore].sort((a, b) => b.score - a.score).slice(0, 5); // Keep top 5
+
+        setHighscores(updated);
+        localStorage.setItem('busTycoonHighscores', JSON.stringify(updated));
+        window.location.reload();
+    };
+
+
     // Passenger Management
-    // { [stopId]: count }
     const [waitingPassengers, setWaitingPassengers] = useState({});
 
     // Bus Status Management
-    // { [busId]: { id: string, line: string, passengers: number, capacity: number } }
     const [busStats, setBusStats] = useState({});
 
-    const position = [49.4447, 7.7689];
+    // Default position, updated by config
+    const position = config ? config.mapCenter : [49.4447, 7.7689];
 
+    // Load Config & Data
     useEffect(() => {
-        const loadRoute = async () => {
+        const initSimulator = async () => {
             setLoading(true);
-            setError(null);
             try {
-                console.log("Fetching KL Buses...");
-                const data = await fetchBusRoute();
+                // 1. Load Config
+                const configRes = await fetch('/config.json');
+                if (!configRes.ok) throw new Error("Could not load config.json");
+                const conf = await configRes.json();
+
+                setConfig(conf);
+                setFleet(conf.initialFleet || {});
+
+                // 2. Load OSM Data
+                console.log(`Fetching Buses for ${conf.cityName}...`);
+                const data = await fetchBusRoute(conf.overpass.bbox, conf.overpass.queryRegex);
                 const parsedRoutes = parseOverpassResponse(data);
 
                 if (parsedRoutes.length === 0) {
-                    setError("No bus lines found. API might be empty or limiting results.");
+                    setError("No bus lines found. Check config regex/bbox.");
                 } else {
                     setRoutes(parsedRoutes);
 
@@ -70,12 +108,13 @@ const MapComponent = () => {
                 }
             } catch (err) {
                 console.error(err);
-                setError(err.message || "Failed to load bus data.");
+                setError(err.message || "Failed to initialize simulation.");
             } finally {
                 setLoading(false);
             }
-        }
-        loadRoute();
+        };
+
+        initSimulator();
     }, []);
 
     // Spawner Loop
@@ -95,11 +134,11 @@ const MapComponent = () => {
                     return prev;
                 }
 
-                // Difficulty Scaling: More buses = More demand
-                const totalBuses = Object.values(busCounts).reduce((a, b) => a + b, 0);
-                const spawnMultiplier = 1 + (totalBuses * 0.15); // e.g. 10 buses = 2.5x spawn rate
+                // Difficulty Scaling
+                // Count total buses from fleet
+                const totalBuses = Object.values(fleet).reduce((acc, lineBuses) => acc + lineBuses.length, 0);
+                const spawnMultiplier = 1 + (totalBuses * 0.15);
 
-                // Spawn at 3 different stops
                 for (let i = 0; i < 3; i++) {
                     const randomStopId = stopIds[Math.floor(Math.random() * stopIds.length)];
                     const baseAmount = Math.floor(Math.random() * 5) + 1;
@@ -112,7 +151,7 @@ const MapComponent = () => {
         }, 3000);
 
         return () => clearInterval(interval);
-    }, [routes, gameOver, busCounts]); // Dependent on busCounts for scaling
+    }, [routes, gameOver, fleet]);
 
     // Bus arrival callback
     const waitingPassengersRef = useRef(waitingPassengers);
@@ -141,7 +180,6 @@ const MapComponent = () => {
         return boarding;
     }, [gameOver]);
 
-    // Bus status callback
     const handleBusStatusUpdate = useCallback((busId, passengers, capacity) => {
         setBusStats(prev => {
             if (prev[busId] && prev[busId].passengers === passengers) return prev;
@@ -157,34 +195,70 @@ const MapComponent = () => {
         });
     }, []);
 
-    const handleBuyBus = (lineRef) => {
+    const handleBuyBus = (lineRef, type = 'standard') => {
         if (gameOver) return;
 
-        if (money >= BUS_COST) {
-            setMoney(prev => prev - BUS_COST);
-            setBusCounts(prev => ({
-                ...prev,
-                [lineRef]: (prev[lineRef] || 0) + 1
-            }));
+        const cost = type === 'articulated' ? BUS_COST_ART : BUS_COST_STD;
+        const capacity = type === 'articulated' ? 100 : 50;
+
+        if (money >= cost) {
+            setMoney(prev => prev - cost);
+
+            setFleet(prev => {
+                const currentLine = prev[lineRef] || [];
+                const newBusId = `${lineRef}-${currentLine.length + 1}`; // 101-5
+                return {
+                    ...prev,
+                    [lineRef]: [...currentLine, { type, capacity, id: newBusId }]
+                };
+            });
+
         } else {
-            alert("Not enough money! Need " + BUS_COST + "€");
+            alert("Not enough money! Need " + cost + "€");
         }
+    };
+
+    const triggerFCKEvent = () => {
+        if (!config || !config.event) return;
+
+        // Spawn massive wave based on config
+        setWaitingPassengers(prev => {
+            const next = { ...prev };
+            const stopIds = Object.keys(next);
+
+            // Calculate loops based on spawnAmount (assuming each loop adds 10 or distribute evenly)
+            // Let's simplified: distribute spawnAmount across random stops.
+            const totalToSpawn = config.event.spawnAmount || 300;
+            const batchSize = 10;
+            const iterations = Math.ceil(totalToSpawn / batchSize);
+
+            for (let i = 0; i < iterations; i++) {
+                const randomStopId = stopIds[Math.floor(Math.random() * stopIds.length)];
+                next[randomStopId] = (next[randomStopId] || 0) + batchSize;
+            }
+
+            alert(`${config.event.emoji} ${config.event.name}: ${config.event.message}`);
+            return next;
+        });
     };
 
     return (
         <div style={{ height: '100%', width: '100%', position: 'relative' }}>
             <LineControls
                 routes={routes}
-                busCounts={busCounts}
-                onUpdateBusCount={handleBuyBus} // Replaced generic update with Buy Logic
+                fleet={fleet} // Updated prop
+                onBuyBus={handleBuyBus} // Updated prop
+                onTriggerEvent={triggerFCKEvent} // New prop
+                eventConfig={config ? config.event : null} // Pass event config
                 loading={loading}
                 error={error}
                 busStats={busStats}
                 waitingPassengers={waitingPassengers}
-                money={money}               // GAME STATE
+                money={money}
                 totalPassengers={totalPassengers}
                 gameOver={gameOver}
-                busCost={BUS_COST}
+                busCostStd={BUS_COST_STD}
+                busCostArt={BUS_COST_ART}
             />
 
             {gameOver && (
@@ -254,7 +328,7 @@ const MapComponent = () => {
                         {route.stops.map(stop => (
                             <CircleMarker
                                 center={stop.position}
-                                radius={waitingPassengers[stop.id] > 20 ? 10 : 6} // Visual indicator for crowded stops
+                                radius={waitingPassengers[stop.id] > 20 ? 10 : 6}
                                 color={waitingPassengers[stop.id] > 40 ? 'red' : route.color}
                                 fillColor="white"
                                 fillOpacity={1}
@@ -268,21 +342,24 @@ const MapComponent = () => {
                             </CircleMarker>
                         ))}
 
-                        {Array.from({ length: busCounts[route.ref] || 0 }).map((_, idx) => {
-                            const offset = 0;
+                        {(fleet[route.ref] || []).map((bus, idx) => {
+                            // Map fleet array to BusMarkers. 
                             return (
                                 <BusMarker
-                                    key={`bus-${route.id}-${idx}`}
+                                    key={bus.id} // use stable ID
                                     routePath={route.path}
                                     stops={route.stops}
                                     color={route.color}
-                                    busId={`${route.ref} (${idx + 1})`}
-                                    startProgress={offset}
+                                    busId={`${route.ref} (${idx + 1})`} // Keeping legacy Display Name format
+                                    startProgress={0}
+                                    capacity={bus.capacity} // Passing capacity!
+                                    type={bus.type}
                                     onArriveAtStop={handleBusArriveAtStop}
                                     onStatusUpdate={handleBusStatusUpdate}
                                 />
                             );
                         })}
+
                     </React.Fragment>
                 ))}
             </MapContainer>

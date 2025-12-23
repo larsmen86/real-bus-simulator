@@ -1,18 +1,12 @@
 
 const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
 
-export const fetchBusRoute = async () => {
-    // Focused query for Kaiserslautern Line 101 AND 102
-    // Bbox: 49.38, 7.68, 49.48, 7.85
-    // Regex: ^(101|102)$
-
-    // Note: We might get multiple relations for the same line (directions).
-    // The parser should handle this.
-
+export const fetchBusRoute = async (bbox = "49.38,7.68,49.48,7.85", regex = "^(101|102|103|104)$") => {
+    // Dynamic query based on config
     const query = `
     [out:json][timeout:25];
     (
-      relation["route"="bus"]["ref"~"^(101|102|103|104)$"](49.38,7.68,49.48,7.85);
+      relation["route"="bus"]["ref"~"${regex}"](${bbox});
     );
     out body;
     >;

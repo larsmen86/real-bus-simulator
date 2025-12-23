@@ -1,0 +1,49 @@
+{
+  "cityName": "Kaiserslautern",
+  "mapCenter": [
+    49.4447,
+    7.7689
+  ],
+  "zoom": 13,
+  "overpass": {
+    "bbox": "49.38,7.68,49.48,7.85",
+    "queryRegex": "^(101|102|103|104)$"
+  },
+  "initialFleet": {
+    "101": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "101-0"
+      }
+    ],
+    "102": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "102-0"
+      }
+    ],
+    "103": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "103-0"
+      }
+    ],
+    "104": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "104-0"
+      }
+    ]
+  },
+  "event": {
+    "name": "FCK Heimspiel",
+    "emoji": "⚽",
+    "buttonText": "HEIMSPIEL (EVENT)",
+    "spawnAmount": 300,
+    "message": "Massenansturm am Betzenberg! 👹"
+  }
+}
