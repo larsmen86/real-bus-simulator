@@ -4,14 +4,17 @@ import L from 'leaflet';
 
 // Simple Bus Icon
 const busIcon = new L.Icon({
-    iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', // Public placeholder bus icon
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
     iconSize: [32, 32],
     iconAnchor: [16, 16],
     popupAnchor: [0, -16]
 });
 
-const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
+const BUS_CAPACITY = 50;
+
+const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop }) => {
     const [position, setPosition] = useState(null);
+    const [passengers, setPassengers] = useState(0); // Current onboard count
 
     // Animation refs
     const requestRef = useRef();
@@ -19,6 +22,7 @@ const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
     const currentPosRef = useRef(null);
     const nextPointIndexRef = useRef(1);
     const directionRef = useRef(1); // 1 = forward, -1 = backward
+    const isPausedRef = useRef(false); // New: Pause flag for stops
 
     // Speed in meters per second (approx 40 km/h = ~11 m/s)
     const SPEED_MPS = 40;
@@ -39,6 +43,7 @@ const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
         // Reset animation state
         directionRef.current = 1;
         nextPointIndexRef.current = safeIndex + 1;
+        isPausedRef.current = false;
 
         const advanceToNextPoint = () => {
             let nextIdx = nextPointIndexRef.current + directionRef.current;
@@ -55,14 +60,64 @@ const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
             nextPointIndexRef.current = nextIdx;
         };
 
+        const checkForStop = (currentIndex) => {
+            if (!stops) return;
+
+            // Find if any stop is at this index (or very close)
+            // Ideally stops are mapped to exact indices in osm.js
+            const stop = stops.find(s => Math.abs(s.pathIndex - currentIndex) < 2);
+
+            if (stop && !isPausedRef.current) {
+                handleStop(stop);
+            }
+        };
+
+        const handleStop = (stop) => {
+            isPausedRef.current = true;
+            // console.log(`Bus ${busId} stopped at ${stop.name}`);
+
+            // 1. Alight random passengers
+            // Chance to alight: 10-30% of current payload
+            const alightingCount = Math.floor(passengers * (0.1 + Math.random() * 0.2));
+            const afterAlight = Math.max(0, passengers - alightingCount);
+
+            // 2. Boarding (Request from Parent)
+            // We need a slight delay to simulate "doors opening" before boarding logic? 
+            // Or just do it immediately.
+
+            // Call parent to get new passengers
+            // We assume onArriveAtStop is synchronous or returns immediate result for simplicity here,
+            // but if it updates state, we might need to rely on the prop update.
+            // For now, let's assume it returns { boarded }.
+
+            let boarded = 0;
+            if (onArriveAtStop) {
+                boarded = onArriveAtStop(stop.id, afterAlight, BUS_CAPACITY);
+            }
+
+            const newTotal = afterAlight + boarded;
+            setPassengers(newTotal);
+
+            // Wait 2 seconds then resume
+            setTimeout(() => {
+                isPausedRef.current = false;
+            }, 2000);
+        };
+
         const animate = (time) => {
             if (!startTimeRef.current) startTimeRef.current = time;
+
+            if (isPausedRef.current) {
+                // Just keep rerunning loop to check for unpause, but don't move
+                requestRef.current = requestAnimationFrame(animate);
+                return;
+            }
 
             const targetIndex = nextPointIndexRef.current;
 
             // Safety check for bounds
             if (targetIndex < 0 || targetIndex >= routePath.length) {
-                advanceToNextPoint(); // Try to resolve invalid state
+                advanceToNextPoint();
                 requestRef.current = requestAnimationFrame(animate);
                 return;
             }
@@ -75,17 +130,18 @@ const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
             const to = L.latLng(target);
             const dist = from.distanceTo(to); // Meters
 
-            // Check for large gaps (e.g. > 100m) likely due to stitching disparate segments.
-            // Teleport to avoid "driving through buildings".
+            let reachedTarget = false;
+
             if (dist > 100) {
+                // Teleport
                 setPosition(target);
                 currentPosRef.current = target;
-                advanceToNextPoint();
+                reachedTarget = true;
             } else if (dist < 5) {
-                // Reached target (within 5 meters)
+                // Reached target
                 setPosition(target);
                 currentPosRef.current = target;
-                advanceToNextPoint();
+                reachedTarget = true;
             } else {
                 // Move towards target
                 const moveDist = SPEED_MPS * (1 / 60);
@@ -99,21 +155,27 @@ const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
                 setPosition(newPos);
             }
 
+            if (reachedTarget) {
+                // Check if this index was a stop
+                checkForStop(targetIndex);
+                advanceToNextPoint();
+            }
+
             requestRef.current = requestAnimationFrame(animate);
         };
 
         requestRef.current = requestAnimationFrame(animate);
 
         return () => cancelAnimationFrame(requestRef.current);
-    }, [routePath]);
+    }, [routePath, stops]); // Re-init if path changes
 
     if (!position) return null;
 
     return (
         <Marker position={position} icon={busIcon}>
             <Popup>
-                Bus {busId} <br />
-                Speed: {SPEED_MPS * 3.6} km/h
+                <strong>{busId}</strong><br />
+                Passengers: {passengers} / {BUS_CAPACITY}
             </Popup>
         </Marker>
     );

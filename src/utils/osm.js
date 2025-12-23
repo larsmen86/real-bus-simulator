@@ -8,7 +8,7 @@ export const parseOverpassResponse = (data) => {
     // 1. Index all elements
     data.elements.forEach(el => {
         if (el.type === 'node') {
-            nodes[el.id] = [el.lat, el.lon];
+            nodes[el.id] = { pos: [el.lat, el.lon], tags: el.tags };
         } else if (el.type === 'way') {
             ways[el.id] = el.nodes; // Array of node IDs
         } else if (el.type === 'relation') {
@@ -43,7 +43,7 @@ export const parseOverpassResponse = (data) => {
                     const segmentCoords = [];
                     wayNodeIds.forEach(nodeId => {
                         if (nodes[nodeId]) {
-                            segmentCoords.push(nodes[nodeId]);
+                            segmentCoords.push(nodes[nodeId].pos);
                         }
                     });
                     if (segmentCoords.length > 1) {
@@ -54,7 +54,8 @@ export const parseOverpassResponse = (data) => {
                 if (nodes[member.ref]) {
                     stops.push({
                         id: member.ref,
-                        position: nodes[member.ref],
+                        position: nodes[member.ref].pos,
+                        name: nodes[member.ref].tags?.name || "Haltestelle",
                         role: member.role
                     });
                 }
@@ -129,6 +130,21 @@ export const parseOverpassResponse = (data) => {
             });
         }
 
+
+        // Match stops to closest point on the stitched path
+        stops.forEach(stop => {
+            let minDist = Infinity;
+            let closestIndex = -1;
+
+            fullPath.forEach((coord, idx) => {
+                const d = Math.pow(coord[0] - stop.position[0], 2) + Math.pow(coord[1] - stop.position[1], 2);
+                if (d < minDist) {
+                    minDist = d;
+                    closestIndex = idx;
+                }
+            });
+            stop.pathIndex = closestIndex;
+        });
 
         routes.push({
             id: relation.id,

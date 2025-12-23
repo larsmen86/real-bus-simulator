@@ -16,7 +16,7 @@ export const fetchBusRoute = async () => {
     );
     out body;
     >;
-    out skel qt;
+    out body qt;
   `;
 
     const controller = new AbortController();

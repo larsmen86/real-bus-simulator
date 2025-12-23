@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from 'react-leaflet';
 import BusMarker from './BusMarker';
 
@@ -22,10 +22,15 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 const MapComponent = () => {
     const [routes, setRoutes] = useState([]);
-    const [busCounts, setBusCounts] = useState({ '101': 1, '102': 1 }); // Default 1 bus per line
+    const [busCounts, setBusCounts] = useState({ '101': 1, '102': 1 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const position = [49.4447, 7.7689]; // Kaiserslautern Center
+
+    // Passenger Management
+    // { [stopId]: count }
+    const [waitingPassengers, setWaitingPassengers] = useState({});
+
+    const position = [49.4447, 7.7689];
 
     useEffect(() => {
         const loadRoute = async () => {
@@ -35,12 +40,20 @@ const MapComponent = () => {
                 console.log("Fetching KL Buses...");
                 const data = await fetchBusRoute();
                 const parsedRoutes = parseOverpassResponse(data);
-                console.log("Parsed Routes:", parsedRoutes);
 
                 if (parsedRoutes.length === 0) {
                     setError("No bus lines found. API might be empty or limiting results.");
                 } else {
                     setRoutes(parsedRoutes);
+
+                    // Initialize empty waiting passengers for all stops
+                    const initialWaiting = {};
+                    parsedRoutes.forEach(r => {
+                        r.stops.forEach(s => {
+                            initialWaiting[s.id] = 0;
+                        });
+                    });
+                    setWaitingPassengers(initialWaiting);
                 }
             } catch (err) {
                 console.error(err);
@@ -51,6 +64,64 @@ const MapComponent = () => {
         }
         loadRoute();
     }, []);
+
+    // Spawner Loop: Add random passengers to random stops every 3 seconds
+    useEffect(() => {
+        if (routes.length === 0) return;
+
+        const interval = setInterval(() => {
+            setWaitingPassengers(prev => {
+                const next = { ...prev };
+
+                // Pick a few random stops to add people to
+                // Get all stop IDs
+                const stopIds = Object.keys(next);
+                if (stopIds.length === 0) return next;
+
+                // Spawn at 3 different stops
+                for (let i = 0; i < 3; i++) {
+                    const randomStopId = stopIds[Math.floor(Math.random() * stopIds.length)];
+                    // Add 1-5 people
+                    const added = Math.floor(Math.random() * 5) + 1;
+                    next[randomStopId] = (next[randomStopId] || 0) + added;
+                }
+
+                return next;
+            });
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [routes]);
+
+    // Callback for BusMarker to pick up passengers
+    // We use a ref mechanism or functional update to avoid stale state issues if passed directly?
+    // Actually, since BusMarker calls this specific function, we need to ensure it has access to the *LATEST* state.
+    // However, `onArriveAtStop` is passed to BusMarker usually as a closure.
+    // If we wrap it in useCallback with dependency [waitingPassengers], it will re-render BusMarkers often (bad for anim?).
+    // Better: Use a Ref for waitingPassengers solely for the callback read, OR pass a setter that uses functional updates?
+    // BUT we need to return the 'boarded' count synchronously to the bus.
+
+    // Solution: Use a Ref to track waitingPassengers for synchronous reads in callbacks
+    const waitingPassengersRef = useRef(waitingPassengers);
+    useEffect(() => {
+        waitingPassengersRef.current = waitingPassengers;
+    }, [waitingPassengers]);
+
+    const handleBusArriveAtStop = useCallback((stopId, currentLoad, capacity) => {
+        const waiting = waitingPassengersRef.current[stopId] || 0;
+        const availableSpace = capacity - currentLoad;
+        const boarding = Math.min(waiting, availableSpace);
+
+        if (boarding > 0) {
+            // Update global state
+            setWaitingPassengers(prev => ({
+                ...prev,
+                [stopId]: (prev[stopId] || 0) - boarding
+            }));
+        }
+
+        return boarding;
+    }, []); // No deps, reads from Ref
 
     const handleUpdateBusCount = (lineRef, count) => {
         setBusCounts(prev => ({
@@ -77,7 +148,6 @@ const MapComponent = () => {
 
                 {routes.map(route => (
                     <React.Fragment key={route.id}>
-                        {/* Render full path */}
                         <Polyline
                             positions={route.path}
                             color={route.color}
@@ -87,32 +157,36 @@ const MapComponent = () => {
                             <Popup>Bus {route.ref}</Popup>
                         </Polyline>
 
-                        {/* Render stops */}
                         {route.stops.map(stop => (
                             <CircleMarker
                                 center={stop.position}
-                                radius={4}
+                                radius={6} // Slightly larger
                                 color={route.color}
                                 fillColor="white"
                                 fillOpacity={1}
                                 key={`${route.id}-stop-${stop.id}`}
                             >
-                                <Popup>Haltestelle: {stop.role} (Linie {route.ref})</Popup>
+                                <Popup>
+                                    <strong>{stop.name}</strong><br />
+                                    Linie {route.ref}<br />
+                                    Waiting: {waitingPassengers[stop.id] || 0} pax
+                                </Popup>
                             </CircleMarker>
                         ))}
 
-                        {/* Bus Simulation: Spawn N buses distributed evenly */}
                         {Array.from({ length: busCounts[route.ref] || 0 }).map((_, idx) => {
                             const count = busCounts[route.ref] || 1;
-                            const offset = idx / count; // 0, 0.5 for 2 buses; 0, 0.33, 0.66 for 3 buses
+                            const offset = idx / count;
 
                             return (
                                 <BusMarker
                                     key={`bus-${route.id}-${idx}`}
                                     routePath={route.path}
+                                    stops={route.stops}
                                     color={route.color}
                                     busId={`${route.ref} (${idx + 1})`}
                                     startProgress={offset}
+                                    onArriveAtStop={handleBusArriveAtStop}
                                 />
                             );
                         })}
