@@ -12,15 +12,15 @@ const busIcon = new L.Icon({
 
 const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
     const [position, setPosition] = useState(null);
-    const [nextPointIndex, setNextPointIndex] = useState(1);
 
     // Animation refs
     const requestRef = useRef();
     const startTimeRef = useRef();
     const currentPosRef = useRef(null);
+    const nextPointIndexRef = useRef(1); // Use Ref instead of State to avoid stale closures in loop
 
     // Speed in meters per second (approx 40 km/h = ~11 m/s)
-    const SPEED_MPS = 30;
+    const SPEED_MPS = 40;
 
     useEffect(() => {
         if (!routePath || routePath.length < 2) return;
@@ -34,16 +34,17 @@ const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
 
         setPosition(start);
         currentPosRef.current = start;
-        setNextPointIndex(safeIndex + 1);
+        nextPointIndexRef.current = safeIndex + 1;
 
         const animate = (time) => {
             if (!startTimeRef.current) startTimeRef.current = time;
 
             // Current target
-            const targetIndex = nextPointIndex;
+            const targetIndex = nextPointIndexRef.current; // Read from Ref
+
             if (targetIndex >= routePath.length) {
                 // Restart loop
-                setNextPointIndex(1);
+                nextPointIndexRef.current = 1;
                 setPosition(routePath[0]);
                 currentPosRef.current = routePath[0];
                 requestRef.current = requestAnimationFrame(animate);
@@ -58,9 +59,15 @@ const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
             const to = L.latLng(target);
             const dist = from.distanceTo(to); // Meters
 
-            if (dist < 5) {
-                // Reached target
-                setNextPointIndex(prev => prev + 1);
+            // Check for large gaps (e.g. > 100m) likely due to stitching disparate segments.
+            // Teleport to avoid "driving through buildings".
+            if (dist > 100) {
+                setPosition(target);
+                currentPosRef.current = target;
+                nextPointIndexRef.current += 1;
+            } else if (dist < 5) {
+                // Reached target (within 5 meters)
+                nextPointIndexRef.current += 1;
                 currentPosRef.current = target;
                 setPosition(target);
             } else {
@@ -82,7 +89,7 @@ const BusMarker = ({ routePath, color, busId, startProgress = 0 }) => {
         requestRef.current = requestAnimationFrame(animate);
 
         return () => cancelAnimationFrame(requestRef.current);
-    }, [routePath]); // Removed nextPointIndex dependency to prevent loop reset on state change, rely on refs
+    }, [routePath]);
 
     if (!position) return null;
 

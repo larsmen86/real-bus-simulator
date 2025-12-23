@@ -32,7 +32,10 @@ export const parseOverpassResponse = (data) => {
         uniqueRefs.add(ref);
 
         // Collect all segments first
+        const fullPath = [];
+        const stops = [];
         let segments = [];
+
         relation.members.forEach(member => {
             if (member.type === 'way' && member.role === '') {
                 const wayNodeIds = ways[member.ref];
