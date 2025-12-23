@@ -34,6 +34,7 @@ export const parseOverpassResponse = (data) => {
         // Collect all segments first
         const fullPath = [];
         const stops = [];
+        const seenStopNames = new Set(); // START: Deduplication by name
         let segments = [];
 
         relation.members.forEach(member => {
@@ -52,12 +53,18 @@ export const parseOverpassResponse = (data) => {
                 }
             } else if (member.type === 'node' && (member.role === 'stop' || member.role === 'platform')) {
                 if (nodes[member.ref]) {
-                    stops.push({
-                        id: member.ref,
-                        position: nodes[member.ref].pos,
-                        name: nodes[member.ref].tags?.name || "Haltestelle",
-                        role: member.role
-                    });
+                    const stopName = nodes[member.ref].tags?.name || "Haltestelle";
+
+                    // Filter: Only allow unique names per line
+                    if (!seenStopNames.has(stopName)) {
+                        seenStopNames.add(stopName);
+                        stops.push({
+                            id: member.ref,
+                            position: nodes[member.ref].pos,
+                            name: stopName,
+                            role: member.role
+                        });
+                    }
                 }
             }
         });

@@ -15,6 +15,7 @@ const BUS_CAPACITY = 50;
 const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop }) => {
     const [position, setPosition] = useState(null);
     const [passengers, setPassengers] = useState(0); // Current onboard count
+    const passengersRef = useRef(0);
 
     // Animation refs
     const requestRef = useRef();
@@ -23,6 +24,7 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop 
     const nextPointIndexRef = useRef(1);
     const directionRef = useRef(1); // 1 = forward, -1 = backward
     const isPausedRef = useRef(false); // New: Pause flag for stops
+    const lastStopIdRef = useRef(null);
 
     // Speed in meters per second (approx 40 km/h = ~11 m/s)
     const SPEED_MPS = 40;
@@ -60,42 +62,47 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop 
             nextPointIndexRef.current = nextIdx;
         };
 
+
+
         const checkForStop = (currentIndex) => {
             if (!stops) return;
 
-            // Find if any stop is at this index (or very close)
-            // Ideally stops are mapped to exact indices in osm.js
-            const stop = stops.find(s => Math.abs(s.pathIndex - currentIndex) < 2);
+            const stop = stops.find(s => s.pathIndex === currentIndex);
 
             if (stop && !isPausedRef.current) {
+                if (lastStopIdRef.current === stop.id) {
+                    return;
+                }
                 handleStop(stop);
+            } else if (!stop) {
+                // Clear validation when leaving stop
+                if (lastStopIdRef.current) {
+                    lastStopIdRef.current = null;
+                }
             }
         };
 
         const handleStop = (stop) => {
             isPausedRef.current = true;
-            // console.log(`Bus ${busId} stopped at ${stop.name}`);
+            lastStopIdRef.current = stop.id;
+
+            // USE REF to avoid stale state
+            const currentPax = passengersRef.current;
 
             // 1. Alight random passengers
             // Chance to alight: 10-30% of current payload
-            const alightingCount = Math.floor(passengers * (0.1 + Math.random() * 0.2));
-            const afterAlight = Math.max(0, passengers - alightingCount);
+            const alightingCount = Math.floor(currentPax * (0.1 + Math.random() * 0.2));
+            const afterAlight = Math.max(0, currentPax - alightingCount);
 
             // 2. Boarding (Request from Parent)
-            // We need a slight delay to simulate "doors opening" before boarding logic? 
-            // Or just do it immediately.
-
-            // Call parent to get new passengers
-            // We assume onArriveAtStop is synchronous or returns immediate result for simplicity here,
-            // but if it updates state, we might need to rely on the prop update.
-            // For now, let's assume it returns { boarded }.
-
             let boarded = 0;
             if (onArriveAtStop) {
                 boarded = onArriveAtStop(stop.id, afterAlight, BUS_CAPACITY);
             }
 
             const newTotal = afterAlight + boarded;
+
+            passengersRef.current = newTotal;
             setPassengers(newTotal);
 
             // Wait 2 seconds then resume
