@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -17,27 +17,23 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
     const [passengers, setPassengers] = useState(0); // Current onboard count
     const passengersRef = useRef(0);
 
-    // ...
+    // Refs for callbacks to avoid stale closures in animation loop
+    const onArriveAtStopRef = useRef(onArriveAtStop);
+    const onStatusUpdateRef = useRef(onStatusUpdate);
+
+    useEffect(() => {
+        onArriveAtStopRef.current = onArriveAtStop;
+        onStatusUpdateRef.current = onStatusUpdate;
+    }, [onArriveAtStop, onStatusUpdate]);
 
     // Report status changes
     useEffect(() => {
-        if (onStatusUpdate) {
-            onStatusUpdate(busId, passengers, BUS_CAPACITY);
+        if (onStatusUpdateRef.current) {
+            onStatusUpdateRef.current(busId, passengers, BUS_CAPACITY);
         }
-    }, [passengers, busId, onStatusUpdate]);
+    }, [passengers, busId]);
 
-    // ...
-
-    const handleStop = (stop) => {
-        // ... (existing logic)
-
-        passengersRef.current = newTotal;
-        setPassengers(newTotal); // This triggers the effect above
-
-        // ...
-    };
-
-    // Animation refs
+    // Animation & Logic refs
     const requestRef = useRef();
     const startTimeRef = useRef();
     const currentPosRef = useRef(null);
@@ -45,9 +41,57 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
     const directionRef = useRef(1); // 1 = forward, -1 = backward
     const isPausedRef = useRef(false); // New: Pause flag for stops
     const lastStopIdRef = useRef(null);
+    const watchdogRef = useRef(null);
 
     // Speed in meters per second (approx 40 km/h = ~11 m/s)
     const SPEED_MPS = 40;
+
+    // Handle Stop Logic
+    const handleStop = useCallback((stop) => {
+        isPausedRef.current = true;
+        lastStopIdRef.current = stop.id;
+
+        // Clear any existing watchdog
+        if (watchdogRef.current) clearTimeout(watchdogRef.current);
+
+        // USE REF to avoid stale state
+        const currentPax = passengersRef.current;
+
+        // 1. Alight random passengers
+        const alightingCount = Math.floor(currentPax * (0.1 + Math.random() * 0.2));
+        const afterAlight = Math.max(0, currentPax - alightingCount);
+
+        // 2. Boarding
+        let boarded = 0;
+        try {
+            if (onArriveAtStopRef.current) {
+                boarded = onArriveAtStopRef.current(stop.id, afterAlight, BUS_CAPACITY);
+            }
+        } catch (e) {
+            console.error("Boarding error:", e);
+        }
+
+        const newTotal = afterAlight + boarded;
+
+        passengersRef.current = newTotal;
+        setPassengers(newTotal);
+
+        // Normal Resume (2s)
+        setTimeout(() => {
+            isPausedRef.current = false;
+            // Clear watchdog if we resume normally
+            if (watchdogRef.current) clearTimeout(watchdogRef.current);
+        }, 2000);
+
+        // Watchdog: Force resume after 5s if stuck
+        watchdogRef.current = setTimeout(() => {
+            if (isPausedRef.current) {
+                console.warn(`Bus ${busId} stuck at ${stop.name}. Force resuming!`);
+                isPausedRef.current = false;
+            }
+        }, 5000);
+    }, [busId]);
+
 
     useEffect(() => {
         if (!routePath || routePath.length < 2) return;
@@ -82,8 +126,6 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
             nextPointIndexRef.current = nextIdx;
         };
 
-
-
         const checkForStop = (currentIndex) => {
             if (!stops) return;
 
@@ -102,35 +144,6 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
             }
         };
 
-        const handleStop = (stop) => {
-            isPausedRef.current = true;
-            lastStopIdRef.current = stop.id;
-
-            // USE REF to avoid stale state
-            const currentPax = passengersRef.current;
-
-            // 1. Alight random passengers
-            // Chance to alight: 10-30% of current payload
-            const alightingCount = Math.floor(currentPax * (0.1 + Math.random() * 0.2));
-            const afterAlight = Math.max(0, currentPax - alightingCount);
-
-            // 2. Boarding (Request from Parent)
-            let boarded = 0;
-            if (onArriveAtStopRef.current) {
-                boarded = onArriveAtStopRef.current(stop.id, afterAlight, BUS_CAPACITY);
-            }
-
-            const newTotal = afterAlight + boarded;
-
-            passengersRef.current = newTotal;
-            setPassengers(newTotal);
-
-            // Wait 2 seconds then resume
-            setTimeout(() => {
-                isPausedRef.current = false;
-            }, 2000);
-        };
-
         const animate = (time) => {
             if (!startTimeRef.current) startTimeRef.current = time;
 
@@ -142,8 +155,9 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
 
             const targetIndex = nextPointIndexRef.current;
 
-            // Safety check for bounds
+            // Strict bounds check
             if (targetIndex < 0 || targetIndex >= routePath.length) {
+                // If out of bounds, try to recover or reverse
                 advanceToNextPoint();
                 requestRef.current = requestAnimationFrame(animate);
                 return;
@@ -151,6 +165,12 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
 
             const target = routePath[targetIndex];
             const current = currentPosRef.current;
+
+            if (!target || !current) {
+                console.warn(`Bus ${busId} has invalid target/current pos`, { targetIndex, current, target });
+                requestRef.current = requestAnimationFrame(animate);
+                return;
+            }
 
             // Calculate distance to target
             const from = L.latLng(current);
@@ -183,7 +203,6 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
             }
 
             if (reachedTarget) {
-                // Check if this index was a stop
                 checkForStop(targetIndex);
                 advanceToNextPoint();
             }
@@ -194,7 +213,7 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
         requestRef.current = requestAnimationFrame(animate);
 
         return () => cancelAnimationFrame(requestRef.current);
-    }, [routePath, stops]); // Re-init if path changes
+    }, [routePath, stops, handleStop, busId]); // Re-init if path changes
 
     if (!position) return null;
 

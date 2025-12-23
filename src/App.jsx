@@ -2,10 +2,14 @@ import React from 'react';
 import MapComponent from './components/Map';
 import './App.css';
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 function App() {
   return (
     <div className="App">
-      <MapComponent />
+      <ErrorBoundary>
+        <MapComponent />
+      </ErrorBoundary>
     </div>
   );
 }
