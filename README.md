@@ -1,16 +1,60 @@
-# React + Vite
+# Real Bus Simulator 🚌
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ein Open-Source Bussimulator basierend auf echten OpenStreetMap-Daten. Starte in Kaiserslautern, manage deine Flotte und transportiere Passagiere in Echtzeit!
 
-Currently, two official plugins are available:
+## 🌟 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+*   **Realistische Karte**: Nutzt OpenStreetMap Daten für Straßen und Haltestellen.
+*   **Live Simulation**: Busse bewegen sich in Echtzeit auf den echten Routen.
+*   **Wirtschaftssystem**: Verdiene Geld durch Ticketverkäufe, kaufe neue Busse (Standard & Gelenkbusse).
+*   **Passagier-Management**: Passagiere sammeln sich an Haltestellen. Überfüllte Haltestellen (>50 Wartende) führen zum Spielverlust!
+*   **Events**: Löse Events aus (z.B. "FCK Heimspiel"), die für massiven Passagieransturm sorgen.
+*   **Highscores**: Speichere deine besten Ergebnisse lokal.
+*   **Anpassbar**: Konfiguriere Startkapital, Stadt, Zoom-Level und Events einfach über `public/config.json`.
 
-## React Compiler
+## 🚀 Installation & Start
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Stelle sicher, dass du [Node.js](https://nodejs.org/) installiert hast.
 
-## Expanding the ESLint configuration
+1.  **Repository klonen**
+    ```bash
+    git clone https://github.com/DEIN_USERNAME/real-bus-simulator.git
+    cd real-bus-simulator
+    ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+2.  **Abhängigkeiten installieren**
+    ```bash
+    npm install
+    ```
+
+3.  **Simulator starten**
+    ```bash
+    npm run dev
+    ```
+    Öffne dann `http://localhost:5173` in deinem Browser.
+
+## ⚙️ Konfiguration
+
+Du kannst das Spiel in `public/config.json` anpassen:
+
+*   **Startkapital**: Ändere `"startCapital"`, um leichter oder schwerer zu starten.
+*   **Stadt**: Ändere `cityName`, `mapCenter` und `overpass.bbox`, um in einer anderen Stadt zu spielen (erfordert gültige OSM Relationen für Buslinien).
+*   **Events**: Passe Name, Emoji und Passagierzahl der Events an.
+
+## 🎮 Steuerung
+
+*   **Linkes Panel**:
+    *   **Pause / Speed**: Pausiere das Spiel oder spule vor (1x = Schnell, 2x = Sehr Schnell).
+    *   **Bus Kaufen**: Kaufe Standardbusse (50 Plätze) oder Gelenkbusse (100 Plätze) für deine Linien.
+    *   **Events**: Starte Events manuell.
+*   **Rechtes Panel**:
+    *   **Statistiken**: Behalte die Gesamtzahl der Passagiere und den Status deiner Flotte im Auge.
+    *   **Kritische Haltestellen**: Warnung bei zu vielen wartenden Fahrgästen.
+
+## 🤝 Mitwirken
+
+Pull Requests sind willkommen! Für größere Änderungen eröffne bitte zuerst ein Issue, um darüber zu diskutieren.
+
+## 📄 Lizenz
+
+Dieses Projekt ist unter der MIT Lizenz veröffentlicht. Siehe [LICENSE](LICENSE) für Details.
