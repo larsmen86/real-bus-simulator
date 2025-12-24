@@ -8,7 +8,7 @@ import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import { fetchBusRoute } from '../services/api';
 import { parseOverpassResponse } from '../utils/osm';
-
+import { translations } from '../utils/translations';
 import LineControls from './LineControls';
 
 let DefaultIcon = L.icon({
@@ -25,7 +25,10 @@ const BUS_COST_ART = 2000;
 const TICKET_PRICE = 10;
 const MAX_WAITING_LIMIT = 50;
 
-const MapComponent = () => {
+const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
+    const language = sessionConfig.language || 'de';
+    const t = translations[language];
+
     const [config, setConfig] = useState(null); // Config state
     const [routes, setRoutes] = useState([]);
 
@@ -65,7 +68,8 @@ const MapComponent = () => {
 
         setHighscores(updated);
         localStorage.setItem('busTycoonHighscores', JSON.stringify(updated));
-        window.location.reload();
+        if (onBackToMenu) onBackToMenu();
+        else window.location.reload(); // Fallback
     };
 
 
@@ -90,7 +94,11 @@ const MapComponent = () => {
 
                 setConfig(conf);
                 setFleet(conf.initialFleet || {});
-                if (conf.startCapital !== undefined) {
+
+                // Prioritize session config (Start Menu) over config.json
+                if (sessionConfig.startCapital !== undefined) {
+                    setMoney(sessionConfig.startCapital);
+                } else if (conf.startCapital !== undefined) {
                     setMoney(conf.startCapital);
                 }
 
@@ -270,6 +278,7 @@ const MapComponent = () => {
                 setSimulationSpeed={setSimulationSpeed}
                 isPaused={isPaused}
                 setIsPaused={setIsPaused}
+                language={language}
             />
 
             {gameOver && (
@@ -284,34 +293,34 @@ const MapComponent = () => {
                     justifyContent: 'center',
                     color: 'white'
                 }}>
-                    <h1 style={{ fontSize: '48px', margin: '20px', color: '#ff4444' }}>GAME OVER</h1>
-                    <p style={{ fontSize: '24px' }}>Overcrowding! More than {MAX_WAITING_LIMIT} people waited at a stop.</p>
-                    <p style={{ fontSize: '32px', fontWeight: 'bold', margin: '20px' }}>Total Transported: {totalPassengers}</p>
+                    <h1 style={{ fontSize: '48px', margin: '0 0 20px 0', color: '#ff4444' }}>{t.gameOverTitle}</h1>
+                    <p style={{ fontSize: '24px' }}>{t.gameOverText}</p>
+                    <p style={{ fontSize: '32px', margin: '30px 0' }}>{t.score}: <strong>{totalPassengers}</strong></p>
 
-                    <div style={{ background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '10px', textAlign: 'center', minWidth: '300px' }}>
-                        <h3 style={{ marginTop: 0 }}>Enter Name for Highscore</h3>
+                    <div style={{ background: '#333', padding: '20px', borderRadius: '10px' }}>
+                        <label style={{ display: 'block', marginBottom: '10px' }}>{t.enterName}</label>
                         <input
                             type="text"
-                            placeholder="Your Name"
                             value={playerName}
                             onChange={(e) => setPlayerName(e.target.value)}
-                            style={{ padding: '10px', fontSize: '18px', borderRadius: '5px', border: 'none', marginBottom: '10px', width: '80%', color: 'black' }}
+                            style={{ padding: '10px', fontSize: '18px', borderRadius: '5px', border: 'none', width: '250px' }}
+                            placeholder="Captain Bus"
                         />
                         <br />
                         <button
-                            style={{ padding: '10px 30px', fontSize: '18px', cursor: 'pointer', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px' }}
+                            style={{ padding: '10px 30px', fontSize: '18px', cursor: 'pointer', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px', marginTop: '15px' }}
                             onClick={saveHighscore}
                         >
-                            Save & Restart
+                            {t.saveRestart}
                         </button>
                     </div>
 
                     <div style={{ marginTop: '30px', textAlign: 'center' }}>
-                        <h3>🏆 Kaierslautern Legends 🏆</h3>
+                        <h3>{t.legends}</h3>
                         <ul style={{ listStyle: 'none', padding: 0 }}>
                             {highscores.map((s, i) => (
                                 <li key={i} style={{ fontSize: '18px', margin: '5px 0' }}>
-                                    {i + 1}. <strong>{s.name}</strong> - {s.score} pax ({s.date})
+                                    {i + 1}. <strong>{s.name}</strong> - {s.score} {t.pax} ({s.date})
                                 </li>
                             ))}
                         </ul>
@@ -369,6 +378,7 @@ const MapComponent = () => {
                                     onStatusUpdate={handleBusStatusUpdate}
                                     simulationSpeed={simulationSpeed}
                                     isPaused={isPaused}
+                                    language={language}
                                 />
                             );
                         })}

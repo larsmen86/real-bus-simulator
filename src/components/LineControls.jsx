@@ -1,4 +1,5 @@
 import React from 'react';
+import { translations } from '../utils/translations';
 
 const LineControls = ({
     routes,
@@ -17,8 +18,10 @@ const LineControls = ({
     simulationSpeed,
     setSimulationSpeed,
     isPaused,
-    setIsPaused
+    setIsPaused,
+    language = 'de'
 }) => {
+    const t = translations[language];
 
     // Sort stops by waiting count (Top 5)
     const stopInfo = {};
@@ -56,7 +59,7 @@ const LineControls = ({
             }}>
                 {/* Money Header */}
                 <div style={{ textAlign: 'center', marginBottom: '15px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
-                    <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Money</div>
+                    <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>{t.money}</div>
                     <div style={{ fontSize: '24px', fontWeight: 'bold', color: money < 1000 ? '#d32f2f' : '#388e3c' }}>{money} €</div>
                 </div>
 
@@ -71,7 +74,7 @@ const LineControls = ({
                             fontWeight: 'bold', flex: 1
                         }}
                     >
-                        {isPaused ? '▶ Resume' : '⏸ Pause'}
+                        {isPaused ? `▶ ${t.resume}` : `⏸ ${t.pause}`}
                     </button>
                     <button
                         onClick={() => setSimulationSpeed(s => s === 1 ? 2 : 1)}
@@ -82,18 +85,18 @@ const LineControls = ({
                             fontWeight: 'bold', flex: 1
                         }}
                     >
-                        {simulationSpeed}x Speed
+                        {simulationSpeed}x {t.speed}
                     </button>
                 </div>
 
                 {/* Line Controls (Bus Management) */}
                 <div style={{ marginBottom: '20px' }}>
-                    <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#555', borderBottom: '1px solid #ddd', paddingBottom: '5px' }}>Bus Management</h4>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#555', borderBottom: '1px solid #ddd', paddingBottom: '5px' }}>{t.busManagement}</h4>
 
-                    {loading && !error && <p style={{ fontSize: '14px', color: '#666' }}>Loading lines...</p>}
-                    {!loading && routes.length === 0 && !error && <p>No lines found.</p>}
+                    {loading && !error && <p style={{ fontSize: '14px', color: '#666' }}>{t.loadingLines}</p>}
+                    {!loading && routes.length === 0 && !error && <p>{t.noLines}</p>}
 
-                    {routes.map(route => {
+                    {[...routes].sort((a, b) => a.ref.localeCompare(b.ref, undefined, { numeric: true })).map(route => {
                         const lineFleet = fleet[route.ref] || [];
                         return (
                             <div key={route.id} style={{ marginBottom: '12px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
@@ -104,8 +107,8 @@ const LineControls = ({
                                             borderRadius: '50%', background: route.color, marginRight: '8px'
                                         }}></span>
                                         <div>
-                                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>Line {route.ref}</div>
-                                            <div style={{ fontSize: '10px', color: '#888' }}>{lineFleet.length} active</div>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{t.line} {route.ref}</div>
+                                            <div style={{ fontSize: '10px', color: '#888' }}>{lineFleet.length} {t.active}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -113,7 +116,7 @@ const LineControls = ({
                                     <button
                                         onClick={() => onBuyBus(route.ref, 'standard')}
                                         disabled={money < busCostStd}
-                                        title="Standard Bus (50 pax)"
+                                        title={t.stdTitle}
                                         style={{
                                             flex: 1,
                                             background: money >= busCostStd ? '#2196f3' : '#e0e0e0',
@@ -122,12 +125,12 @@ const LineControls = ({
                                             fontSize: '11px'
                                         }}
                                     >
-                                        + Standard ({busCostStd}€)
+                                        {t.buyStd} ({busCostStd}€)
                                     </button>
                                     <button
                                         onClick={() => onBuyBus(route.ref, 'articulated')}
                                         disabled={money < busCostArt}
-                                        title="Gelenkbus (100 pax)"
+                                        title={t.artTitle}
                                         style={{
                                             flex: 1,
                                             background: money >= busCostArt ? '#673ab7' : '#e0e0e0',
@@ -136,7 +139,7 @@ const LineControls = ({
                                             fontSize: '11px'
                                         }}
                                     >
-                                        + Gelenkbus ({busCostArt}€)
+                                        {t.buyArt} ({busCostArt}€)
                                     </button>
                                 </div>
                             </div>
@@ -178,7 +181,7 @@ const LineControls = ({
                 {/* GAME HEADER */}
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px', borderBottom: '2px solid #333', paddingBottom: '10px' }}>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Passengers</div>
+                        <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>{t.passengers}</div>
                         <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{totalPassengers}</div>
                     </div>
                 </div>
@@ -191,13 +194,13 @@ const LineControls = ({
 
                 {/* Bus Live Stats */}
                 <div style={{ marginBottom: '20px' }}>
-                    <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#555' }}>Fleet Status ({activeBuses.length})</h4>
-                    {activeBuses.length === 0 ? <p style={{ fontSize: '12px', color: '#999' }}>No buses active.</p> : (
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#555' }}>{t.fleetStatus} ({activeBuses.length})</h4>
+                    {activeBuses.length === 0 ? <p style={{ fontSize: '12px', color: '#999' }}>{t.noBuses}</p> : (
                         <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ textAlign: 'left', color: '#888' }}>
-                                    <th>Bus</th>
-                                    <th>Load</th>
+                                    <th>{t.bus}</th>
+                                    <th>{t.load}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -227,13 +230,13 @@ const LineControls = ({
 
                 {/* Waiting Passengers */}
                 <div>
-                    <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#555' }}>Critical Stops ({'>'}50 = Loose)</h4>
-                    {topStops.length === 0 ? <p style={{ fontSize: '12px', color: '#999' }}>Empty streets.</p> : (
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#555' }}>{t.criticalStops}</h4>
+                    {topStops.length === 0 ? <p style={{ fontSize: '12px', color: '#999' }}>{t.emptyStreets}</p> : (
                         <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ textAlign: 'left', color: '#888' }}>
-                                    <th>Stop</th>
-                                    <th>Wait</th>
+                                    <th>{t.stop}</th>
+                                    <th>{t.wait}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -245,7 +248,7 @@ const LineControls = ({
                                         <tr key={stopId} style={{ borderBottom: '1px solid #f0f0f0' }}>
                                             <td style={{ padding: '4px 0', whiteSpace: 'nowrap', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 <div>{info.name}</div>
-                                                <div style={{ fontSize: '10px', color: '#666' }}>Line: {lineStr}</div>
+                                                <div style={{ fontSize: '10px', color: '#666' }}>{t.line}: {lineStr}</div>
                                             </td>
                                             <td style={{
                                                 padding: '4px 0',

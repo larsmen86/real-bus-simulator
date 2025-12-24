@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { translations } from '../utils/translations';
 import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -40,7 +41,8 @@ const createBusIcon = (loadPercentage, type) => {
     });
 };
 
-const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop, onStatusUpdate, capacity = 50, type = 'standard', simulationSpeed = 1, isPaused = false }) => {
+const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop, onStatusUpdate, capacity = 50, type = 'standard', simulationSpeed = 1, isPaused = false, language = 'de' }) => {
+    const t = translations[language];
     const [position, setPosition] = useState(null);
     const [passengers, setPassengers] = useState(0);
     const passengersRef = useRef(0);
@@ -241,8 +243,8 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
     return (
         <Marker position={position} icon={icon}>
             <Popup>
-                <strong>{busId}</strong> {type === 'articulated' ? '(Gelenkbus)' : ''}<br />
-                Passengers: {passengers} / {capacity}
+                <strong>{busId}</strong> {type === 'articulated' ? `(${t.articulated})` : ''}<br />
+                {t.passengers}: {passengers} / {capacity}
             </Popup>
         </Marker>
     );
