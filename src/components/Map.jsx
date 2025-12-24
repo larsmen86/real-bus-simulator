@@ -41,6 +41,10 @@ const MapComponent = () => {
     const [totalPassengers, setTotalPassengers] = useState(0);
     const [gameOver, setGameOver] = useState(false);
 
+    // Simulation Control
+    const [simulationSpeed, setSimulationSpeed] = useState(1);
+    const [isPaused, setIsPaused] = useState(false);
+
     // Highscore State
     const [highscores, setHighscores] = useState([]);
     const [playerName, setPlayerName] = useState("");
@@ -86,6 +90,9 @@ const MapComponent = () => {
 
                 setConfig(conf);
                 setFleet(conf.initialFleet || {});
+                if (conf.startCapital !== undefined) {
+                    setMoney(conf.startCapital);
+                }
 
                 // 2. Load OSM Data
                 console.log(`Fetching Buses for ${conf.cityName}...`);
@@ -119,7 +126,7 @@ const MapComponent = () => {
 
     // Spawner Loop
     useEffect(() => {
-        if (routes.length === 0 || gameOver) return;
+        if (routes.length === 0 || gameOver || isPaused) return;
 
         const interval = setInterval(() => {
             setWaitingPassengers(prev => {
@@ -148,10 +155,10 @@ const MapComponent = () => {
                 }
                 return next;
             });
-        }, 3000);
+        }, 3000 / simulationSpeed); // Adjust spawn rate by speed
 
         return () => clearInterval(interval);
-    }, [routes, gameOver, fleet]);
+    }, [routes, gameOver, fleet, isPaused, simulationSpeed]);
 
     // Bus arrival callback
     const waitingPassengersRef = useRef(waitingPassengers);
@@ -259,6 +266,10 @@ const MapComponent = () => {
                 gameOver={gameOver}
                 busCostStd={BUS_COST_STD}
                 busCostArt={BUS_COST_ART}
+                simulationSpeed={simulationSpeed}
+                setSimulationSpeed={setSimulationSpeed}
+                isPaused={isPaused}
+                setIsPaused={setIsPaused}
             />
 
             {gameOver && (
@@ -356,6 +367,8 @@ const MapComponent = () => {
                                     type={bus.type}
                                     onArriveAtStop={handleBusArriveAtStop}
                                     onStatusUpdate={handleBusStatusUpdate}
+                                    simulationSpeed={simulationSpeed}
+                                    isPaused={isPaused}
                                 />
                             );
                         })}

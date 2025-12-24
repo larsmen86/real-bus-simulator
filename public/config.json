@@ -45,5 +45,6 @@
     "buttonText": "HEIMSPIEL (EVENT)",
     "spawnAmount": 300,
     "message": "Massenansturm am Betzenberg! 👹"
-  }
+  },
+  "startCapital": 5000
 }

@@ -3,7 +3,7 @@ import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 
 // Constants
-const SPEED_MPS = 40; // Approx 40 km/h
+const SPEED_MPS = 80; // Approx 80 km/h (effectively new 1x)
 
 // Dynamic Icon Generator
 const createBusIcon = (loadPercentage, type) => {
@@ -40,7 +40,7 @@ const createBusIcon = (loadPercentage, type) => {
     });
 };
 
-const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop, onStatusUpdate, capacity = 50, type = 'standard' }) => {
+const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop, onStatusUpdate, capacity = 50, type = 'standard', simulationSpeed = 1, isPaused = false }) => {
     const [position, setPosition] = useState(null);
     const [passengers, setPassengers] = useState(0);
     const passengersRef = useRef(0);
@@ -48,6 +48,15 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
     // Refs for callbacks
     const onArriveAtStopRef = useRef(onArriveAtStop);
     const onStatusUpdateRef = useRef(onStatusUpdate);
+
+    // Refs for simulation state to avoid re-triggering main effect
+    const simulationSpeedRef = useRef(simulationSpeed);
+    const isPausedPropRef = useRef(isPaused);
+
+    useEffect(() => {
+        simulationSpeedRef.current = simulationSpeed;
+        isPausedPropRef.current = isPaused;
+    }, [simulationSpeed, isPaused]);
 
     useEffect(() => {
         onArriveAtStopRef.current = onArriveAtStop;
@@ -70,6 +79,7 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
     const isPausedRef = useRef(false);
     const lastStopIdRef = useRef(null);
     const watchdogRef = useRef(null);
+    const hasSpawnedRef = useRef(false);
 
     // Handle Stop Logic
     const handleStop = useCallback((stop) => {
@@ -102,7 +112,7 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
         setTimeout(() => {
             isPausedRef.current = false;
             if (watchdogRef.current) clearTimeout(watchdogRef.current);
-        }, 2000);
+        }, 1000 / simulationSpeedRef.current);
 
         watchdogRef.current = setTimeout(() => {
             if (isPausedRef.current) {
@@ -114,19 +124,26 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
 
 
     useEffect(() => {
-        if (!routePath || routePath.length < 2) return;
+        // Initialize Position ONCE (or when route changes)
+        if (!currentPosRef.current && routePath && routePath.length > 0) {
+            const totalPoints = routePath.length;
+            const startIndex = Math.floor(totalPoints * startProgress);
+            const safeIndex = Math.max(0, Math.min(startIndex, totalPoints - 2));
+            const start = routePath[safeIndex];
 
-        const totalPoints = routePath.length;
-        const startIndex = Math.floor(totalPoints * startProgress);
-        const safeIndex = Math.max(0, Math.min(startIndex, totalPoints - 2));
-        const start = routePath[safeIndex];
+            setPosition(start);
+            currentPosRef.current = start;
+            nextPointIndexRef.current = safeIndex + 1;
 
-        setPosition(start);
-        currentPosRef.current = start;
-
-        directionRef.current = 1;
-        nextPointIndexRef.current = safeIndex + 1;
-        isPausedRef.current = false;
+            // Check spawn stop
+            if (!hasSpawnedRef.current && stops) {
+                const spawnStop = stops.find(s => s.pathIndex === startIndex);
+                if (spawnStop) {
+                    handleStop(spawnStop);
+                }
+                hasSpawnedRef.current = true;
+            }
+        }
 
         const advanceToNextPoint = () => {
             let nextIdx = nextPointIndexRef.current + directionRef.current;
@@ -154,12 +171,16 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
         const animate = (time) => {
             if (!startTimeRef.current) startTimeRef.current = time;
 
-            if (isPausedRef.current) {
+            // Global Pause OR Bus at Stop Pause
+            if (isPausedPropRef.current || isPausedRef.current) {
                 requestRef.current = requestAnimationFrame(animate);
                 return;
             }
 
             const targetIndex = nextPointIndexRef.current;
+            // Safety check
+            if (!routePath || routePath.length === 0) return;
+
             if (targetIndex < 0 || targetIndex >= routePath.length) {
                 advanceToNextPoint();
                 requestRef.current = requestAnimationFrame(animate);
@@ -167,7 +188,7 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
             }
 
             const target = routePath[targetIndex];
-            const current = currentPosRef.current;
+            const current = currentPosRef.current || routePath[0]; // Fallback
 
             if (!target || !current) {
                 requestRef.current = requestAnimationFrame(animate);
@@ -189,7 +210,7 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
                 currentPosRef.current = target;
                 reachedTarget = true;
             } else {
-                const moveDist = SPEED_MPS * (1 / 60);
+                const moveDist = SPEED_MPS * simulationSpeedRef.current * (1 / 60);
                 const ratio = moveDist / dist;
                 const newPos = [
                     current[0] + (target[0] - current[0]) * ratio,
@@ -209,7 +230,7 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
 
         requestRef.current = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(requestRef.current);
-    }, [routePath, stops, handleStop]); // Removing handleStop dep might be risky if it changes, but used useCallback
+    }, [routePath, stops, handleStop]); // Removed isPaused and simulationSpeed from deps
 
     if (!position) return null;
 
