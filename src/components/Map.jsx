@@ -60,23 +60,36 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
     const [playerName, setPlayerName] = useState("");
 
     // Load Highscores
+    // Load Highscores
     useEffect(() => {
-        const stored = localStorage.getItem('busTycoonHighscores');
-        if (stored) {
-            setHighscores(JSON.parse(stored));
-        }
+        fetch('/api/highscores')
+            .then(res => res.json())
+            .then(data => setHighscores(data))
+            .catch(err => console.error("Failed to load highscores:", err));
     }, []);
 
     const saveHighscore = () => {
         if (!playerName.trim()) return;
 
         const newScore = { name: playerName, score: totalPassengers, date: new Date().toLocaleDateString() };
-        const updated = [...highscores, newScore].sort((a, b) => b.score - a.score).slice(0, 5); // Keep top 5
 
-        setHighscores(updated);
-        localStorage.setItem('busTycoonHighscores', JSON.stringify(updated));
-        if (onBackToMenu) onBackToMenu();
-        else window.location.reload(); // Fallback
+        fetch('/api/highscores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newScore)
+        })
+            .then(res => res.json())
+            .then(updatedHighscores => {
+                setHighscores(updatedHighscores);
+                if (onBackToMenu) onBackToMenu();
+                else window.location.reload();
+            })
+            .catch(err => {
+                console.error("Failed to save highscore:", err);
+                // Fallback: Proceed anyway
+                if (onBackToMenu) onBackToMenu();
+                else window.location.reload();
+            });
     };
 
 
