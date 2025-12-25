@@ -234,11 +234,13 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
         return () => cancelAnimationFrame(requestRef.current);
     }, [routePath, stops, handleStop]); // Removed isPaused and simulationSpeed from deps
 
-    if (!position) return null;
-
     // Dynamic Icon Logic
     const loadPct = capacity > 0 ? passengers / capacity : 0;
-    const icon = createBusIcon(loadPct, type);
+
+    // Memoize icon to prevent recreation on every render if load/type hasn't changed
+    const icon = React.useMemo(() => createBusIcon(loadPct, type), [loadPct, type]);
+
+    if (!position) return null;
 
     return (
         <Marker position={position} icon={icon}>
@@ -250,4 +252,4 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
     );
 };
 
-export default BusMarker;
+export default React.memo(BusMarker);

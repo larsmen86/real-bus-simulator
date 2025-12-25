@@ -167,7 +167,7 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
                 // Level-based difficulty (1000 passengers = 1 level)
                 // Use Ref to avoid resetting interval on every passenger change
                 const currentLevel = Math.floor(totalPassengersRef.current / 1000);
-                const spawnMultiplier = 1 + (currentLevel * 0.1);
+                const spawnMultiplier = 1 + (currentLevel * 0.2);
 
                 // Use config.spawn settings or defaults
                 // Default: 3 stops, 1-5 pax
