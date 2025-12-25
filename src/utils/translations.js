@@ -32,7 +32,9 @@ export const translations = {
         legends: "🏆 Legenden 🏆",
         unknown: "Unbekannt",
         line: "Linie",
-        pax: "Pax"
+        pax: "Pax",
+        levelUp: "LEVEL UP! Level",
+        morePax: "Mehr Fahrgäste! 📈"
     },
     en: {
         money: "Money",
@@ -67,6 +69,8 @@ export const translations = {
         legends: "🏆 Legends 🏆",
         unknown: "Unknown",
         line: "Line",
-        pax: "Pax"
+        pax: "Pax",
+        levelUp: "LEVEL UP! Level",
+        morePax: "More Passengers! 📈"
     }
 };

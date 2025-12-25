@@ -106,9 +106,15 @@
     "name": "FCK Heimspiel",
     "emoji": "⚽",
     "buttonText": "HEIMSPIEL (EVENT)",
-    "autoTrigger": 1000,
+    "autoTrigger": 10000,
     "spawnAmount": 300,
     "message": "Massenansturm am Betzenberg! 👹"
+  },
+  "spawn": {
+    "interval": 1000,
+    "stopsPerSpawn": 5,
+    "minPassengers": 1,
+    "maxPassengers": 5
   },
   "startCapital": 5000
 }

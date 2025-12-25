@@ -44,6 +44,7 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
     // Game Economy
     const [money, setMoney] = useState(0);
     const [totalPassengers, setTotalPassengers] = useState(0);
+    const [lastLevel, setLastLevel] = useState(0);
     const [gameOver, setGameOver] = useState(false);
 
     // Notification State
@@ -163,29 +164,59 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
                 }
 
                 // Difficulty Scaling
-                // Count total buses from fleet
-                const totalBuses = Object.values(fleet).reduce((acc, lineBuses) => acc + lineBuses.length, 0);
-                const spawnMultiplier = 1 + (totalBuses * 0.15);
+                // Level-based difficulty (1000 passengers = 1 level)
+                // Use Ref to avoid resetting interval on every passenger change
+                const currentLevel = Math.floor(totalPassengersRef.current / 1000);
+                const spawnMultiplier = 1 + (currentLevel * 0.1);
 
-                for (let i = 0; i < 3; i++) {
+                // Use config.spawn settings or defaults
+                // Default: 3 stops, 1-5 pax
+                const stopsToSpawn = config?.spawn?.stopsPerSpawn || 3;
+
+                // Fallback for min/max
+                const minPax = config?.spawn?.minPassengers || 1;
+                const maxPax = config?.spawn?.maxPassengers || 5;
+
+                for (let i = 0; i < stopsToSpawn; i++) {
                     const randomStopId = stopIds[Math.floor(Math.random() * stopIds.length)];
-                    const baseAmount = Math.floor(Math.random() * 5) + 1;
+                    const baseAmount = Math.floor(Math.random() * (maxPax - minPax + 1)) + minPax;
                     const added = Math.ceil(baseAmount * spawnMultiplier);
 
                     next[randomStopId] = (next[randomStopId] || 0) + added;
                 }
                 return next;
             });
-        }, 3000 / simulationSpeed); // Adjust spawn rate by speed
+        }, (config?.spawn?.interval || 3000) / simulationSpeed); // Adjust spawn rate by speed
 
         return () => clearInterval(interval);
-    }, [routes, gameOver, fleet, isPaused, simulationSpeed]);
+    }, [routes, gameOver, fleet, isPaused, simulationSpeed, config]); // Removed totalPassengers to prevent restart
+
+    // Level Up Check
+    useEffect(() => {
+        const currentLevel = Math.floor(totalPassengers / 1000);
+        if (currentLevel > lastLevel) {
+            setLastLevel(currentLevel);
+            setNotification({
+                message: `${t.levelUp} ${currentLevel} - ${t.morePax}`,
+                type: 'success'
+            });
+        }
+    }, [totalPassengers, lastLevel, t]);
 
     // Bus arrival callback
     const waitingPassengersRef = useRef(waitingPassengers);
+    const totalPassengersRef = useRef(totalPassengers);
+
+    // Purchase Lock to prevent race conditions/crashes on rapid clicks
+    const isBuyingRef = useRef(false);
+
     useEffect(() => {
         waitingPassengersRef.current = waitingPassengers;
     }, [waitingPassengers]);
+
+    useEffect(() => {
+        totalPassengersRef.current = totalPassengers;
+    }, [totalPassengers]);
 
     const handleBusArriveAtStop = useCallback((stopId, currentLoad, capacity) => {
         if (gameOver) return 0;
@@ -224,7 +255,11 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
     }, []);
 
     const handleBuyBus = (lineRef, type = 'standard') => {
-        if (gameOver) return;
+        if (gameOver || isBuyingRef.current) return;
+
+        // Lock purchase for 500ms
+        isBuyingRef.current = true;
+        setTimeout(() => { isBuyingRef.current = false; }, 500);
 
         const cost = type === 'articulated' ? BUS_COST_ART : BUS_COST_STD;
         const capacity = type === 'articulated' ? 100 : 50;
