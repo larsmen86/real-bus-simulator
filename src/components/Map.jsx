@@ -9,7 +9,7 @@ import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import { fetchBusRoute } from '../services/api';
 import { parseOverpassResponse } from '../utils/osm';
 import { translations } from '../utils/translations';
-import { translations } from '../utils/translations';
+
 import LineControls from './LineControls';
 import Notification from './Notification';
 
