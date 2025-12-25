@@ -34,7 +34,11 @@ export const translations = {
         line: "Linie",
         pax: "Pax",
         levelUp: "LEVEL UP! Level",
-        morePax: "Mehr Fahrgäste! 📈"
+        morePax: "Mehr Fahrgäste! 📈",
+        updateLines: "Buslinien aktualisieren",
+        updating: "Aktualisiere...",
+        updateSuccess: "Aktualisiert!",
+        updateError: "Fehler!"
     },
     en: {
         money: "Money",
@@ -71,6 +75,10 @@ export const translations = {
         line: "Line",
         pax: "Pax",
         levelUp: "LEVEL UP! Level",
-        morePax: "More Passengers! 📈"
+        morePax: "More Passengers! 📈",
+        updateLines: "Update Bus Lines",
+        updating: "Updating...",
+        updateSuccess: "Updated!",
+        updateError: "Error!"
     }
 };

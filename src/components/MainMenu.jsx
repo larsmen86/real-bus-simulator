@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import pkg from '../../package.json';
+import { updateLocalBusData } from '../services/api';
+import { translations } from '../utils/translations';
 
 const MainMenu = ({ onStartGame }) => {
     // Menu States: 'main', 'settings', 'help'
@@ -9,6 +11,8 @@ const MainMenu = ({ onStartGame }) => {
     // Default language DE as requested
     const [language, setLanguage] = useState('de');
     const [customCapital, setCustomCapital] = useState('');
+    const [updating, setUpdating] = useState(false);
+    const [updateMsg, setUpdateMsg] = useState("");
 
     // Texts
     const texts = {
@@ -46,7 +50,27 @@ const MainMenu = ({ onStartGame }) => {
         }
     };
 
-    const t = texts[language];
+    const t = { ...texts[language], ...translations[language] };
+
+    const handleUpdateBusData = async () => {
+        if (updating) return;
+        setUpdating(true);
+        setUpdateMsg(t.updating);
+
+        try {
+            // Fetch config to get current Overpass settings
+            const res = await fetch('/config.json');
+            const conf = await res.json();
+
+            await updateLocalBusData(conf.overpass.bbox, conf.overpass.queryRegex);
+            setUpdateMsg(t.updateSuccess);
+        } catch (err) {
+            console.error(err);
+            setUpdateMsg(t.updateError);
+        } finally {
+            setUpdating(false);
+        }
+    };
 
     const handleStart = () => {
         const config = {
@@ -148,6 +172,17 @@ const MainMenu = ({ onStartGame }) => {
                     />
 
                     <hr style={{ borderColor: 'rgba(255,255,255,0.2)', margin: '20px 0' }} />
+
+                    <button
+                        style={{ ...buttonStyle, width: '100%', fontSize: '18px', background: '#FF9800', color: 'white', margin: '0 0 10px 0' }}
+                        onClick={handleUpdateBusData}
+                        disabled={updating}
+                    >
+                        {updating ? "..." : t.updateLines}
+                    </button>
+                    {updateMsg && <div style={{ fontSize: '14px', marginBottom: '10px' }}>{updateMsg}</div>}
+
+                    <div style={{ height: '10px' }}></div>
 
                     <h3>{t.infoTitle}</h3>
                     <p style={{ lineHeight: '1.5', color: '#ddd' }}>{t.infoText}</p>
