@@ -14,6 +14,11 @@ Ein Open-Source Bussimulator basierend auf echten OpenStreetMap-Daten. Starte in
 
 ## 🚀 Installation & Start
 
+[Online spielen auf Vercel](https://real-bus-simulator.vercel.app/)
+
+oder lokal laufen lassen:
+
+
 Stelle sicher, dass du [Node.js](https://nodejs.org/) installiert hast.
 
 1.  **Repository klonen**
