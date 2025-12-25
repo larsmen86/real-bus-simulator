@@ -17,6 +17,11 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
         try {
+            if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+                console.error("Missing ENV Vars: KV_REST_API_URL or KV_REST_API_TOKEN");
+                return res.status(500).json({ error: 'Database configuration missing (Env Vars)' });
+            }
+
             // Read highscores from Redis
             // We store the list under the key 'highscores'
             const highscores = await kv.get('highscores');
