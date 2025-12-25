@@ -38,7 +38,7 @@ export const translations = {
         updateLines: "Buslinien aktualisieren",
         updating: "Aktualisiere...",
         updateSuccess: "Aktualisiert!",
-        updateError: "Fehler!"
+        updateError: "Fehler! Seite bitte neu laden"
     },
     en: {
         money: "Money",

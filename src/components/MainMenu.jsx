@@ -72,6 +72,11 @@ const MainMenu = ({ onStartGame }) => {
         }
     };
 
+    // Auto-Update on Mount
+    React.useEffect(() => {
+        handleUpdateBusData();
+    }, []);
+
     const handleStart = () => {
         const config = {
             language,
@@ -136,72 +141,12 @@ const MainMenu = ({ onStartGame }) => {
             <button style={{ ...buttonStyle, fontSize: '20px', background: 'rgba(255, 255, 255, 0.7)' }} onClick={() => setView('settings')}>{t.settings}</button>
             <button style={{ ...buttonStyle, fontSize: '20px', background: 'rgba(255, 255, 255, 0.7)' }} onClick={() => setView('help')}>{t.help}</button>
 
+            <div style={{ marginTop: '20px', fontSize: '16px', color: '#ccc' }}>
+                {updating ? "🔄 " + t.updating : updateMsg === t.updateSuccess ? "✅ " + t.updateSuccess : updateMsg}
+            </div>
+
             <div style={{ position: 'absolute', bottom: '20px', fontSize: '14px', opacity: 0.7 }}>
                 {pkg.name} v{pkg.version}
-            </div>
-        </div>
-    );
-
-    // --- HIGHSCORE DEBUG ---
-    const [debugOutput, setDebugOutput] = useState("Ready to test...");
-
-    const checkConnection = async () => {
-        setDebugOutput("Connecting to API...");
-        try {
-            const res = await fetch('/api/highscores');
-            const data = await res.json();
-            setDebugOutput("GET Success:\n" + JSON.stringify(data, null, 2));
-        } catch (err) {
-            setDebugOutput("GET Check Failed:\n" + err.toString());
-        }
-    };
-
-    const createTestEntry = async () => {
-        setDebugOutput("Sending entry...");
-        try {
-            const testData = { name: "DebugUser", score: 999, date: "Test" };
-            const res = await fetch('/api/highscores', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(testData)
-            });
-            const data = await res.json();
-            setDebugOutput("POST Response:\n" + JSON.stringify(data, null, 2));
-        } catch (err) {
-            setDebugOutput("POST Failed:\n" + err.toString());
-        }
-    };
-
-    const renderHighscoreDebug = () => (
-        <div style={containerStyle}>
-            <div style={{ ...modalStyle, maxWidth: '800px' }}>
-                <h2>Highscore Debugger</h2>
-
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '20px' }}>
-                    <button style={{ ...buttonStyle, fontSize: '16px', width: 'auto' }} onClick={checkConnection}>
-                        📡 GET Check
-                    </button>
-                    <button style={{ ...buttonStyle, fontSize: '16px', width: 'auto', background: '#FF5722', color: 'white' }} onClick={createTestEntry}>
-                        📝 Create Test Entry
-                    </button>
-                </div>
-
-                <pre style={{
-                    textAlign: 'left',
-                    background: '#222',
-                    padding: '15px',
-                    borderRadius: '5px',
-                    overflow: 'auto',
-                    height: '300px',
-                    fontSize: '14px',
-                    fontFamily: 'monospace'
-                }}>
-                    {debugOutput}
-                </pre>
-
-                <button style={{ ...buttonStyle, width: '200px', fontSize: '18px', marginTop: '20px' }} onClick={() => setView('settings')}>
-                    {t.back}
-                </button>
             </div>
         </div>
     );
@@ -237,22 +182,7 @@ const MainMenu = ({ onStartGame }) => {
 
                     <hr style={{ borderColor: 'rgba(255,255,255,0.2)', margin: '20px 0' }} />
 
-                    <button
-                        style={{ ...buttonStyle, width: '100%', fontSize: '18px', background: '#FF9800', color: 'white', margin: '0 0 10px 0' }}
-                        onClick={handleUpdateBusData}
-                        disabled={updating}
-                    >
-                        {updating ? "..." : t.updateLines}
-                    </button>
-                    {updateMsg && <div style={{ fontSize: '14px', marginBottom: '10px' }}>{updateMsg}</div>}
-
-                    <button
-                        style={{ ...buttonStyle, width: '100%', fontSize: '18px', background: '#9C27B0', color: 'white', margin: '10px 0' }}
-                        onClick={() => setView('highscore_debug')}
-                    >
-                        🛠 Highscore Debug
-                    </button>
-
+                    {/* Auto-update runs on start, button removed as requested */}
 
                     <div style={{ height: '10px' }}></div>
 
@@ -280,7 +210,6 @@ const MainMenu = ({ onStartGame }) => {
 
     if (view === 'settings') return renderSettings();
     if (view === 'help') return renderHelp();
-    if (view === 'highscore_debug') return renderHighscoreDebug();
     return renderMainMap();
 };
 

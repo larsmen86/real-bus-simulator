@@ -3,6 +3,30 @@ const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
 
 const CACHE_KEY = 'bus_data_cache';
 
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const fetchWithRetry = async (url, options, retries = 3, backoff = 1000) => {
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            // Rate limiting (429) or Server Error (5xx) -> Retry
+            if (response.status === 429 || response.status >= 500) {
+                throw new Error(`Retriable Error: ${response.status}`);
+            }
+            // Client Error (4xx) -> Fail immediately
+            throw new Error(`Overpass API Error: ${response.status} ${response.statusText}`);
+        }
+        return response;
+    } catch (err) {
+        if (retries > 0) {
+            console.warn(`Fetch failed (${err.message}). Retrying in ${backoff}ms... (${retries} left)`);
+            await wait(backoff);
+            return fetchWithRetry(url, options, retries - 1, backoff * 2);
+        }
+        throw err;
+    }
+};
+
 export const updateLocalBusData = async (bbox = "49.38,7.68,49.48,7.85", regex = "^(101|102|103|104)$") => {
     // Dynamic query based on config
     const query = `
@@ -15,12 +39,13 @@ export const updateLocalBusData = async (bbox = "49.38,7.68,49.48,7.85", regex =
     out body qt;
   `;
 
+
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased to 30s
 
     try {
         console.log("Fetching from Overpass API...");
-        const response = await fetch(OVERPASS_API_URL, {
+        const response = await fetchWithRetry(OVERPASS_API_URL, {
             method: 'POST',
             body: `data=${encodeURIComponent(query)}`,
             signal: controller.signal
@@ -29,6 +54,7 @@ export const updateLocalBusData = async (bbox = "49.38,7.68,49.48,7.85", regex =
         clearTimeout(timeoutId);
 
         if (!response.ok) {
+            // Should be caught by fetchWithRetry but double check
             throw new Error(`Overpass API Error: ${response.status} ${response.statusText}`);
         }
 
