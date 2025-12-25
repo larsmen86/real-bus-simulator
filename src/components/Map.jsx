@@ -64,8 +64,18 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
     useEffect(() => {
         fetch('/api/highscores')
             .then(res => res.json())
-            .then(data => setHighscores(data))
-            .catch(err => console.error("Failed to load highscores:", err));
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setHighscores(data);
+                } else {
+                    console.error("Received non-array highscores:", data);
+                    setHighscores([]);
+                }
+            })
+            .catch(err => {
+                console.error("Failed to load highscores:", err);
+                setHighscores([]);
+            });
     }, []);
 
     const saveHighscore = () => {
@@ -80,15 +90,19 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
         })
             .then(res => res.json())
             .then(updatedHighscores => {
-                setHighscores(updatedHighscores);
-                if (onBackToMenu) onBackToMenu();
-                else window.location.reload();
+                if (Array.isArray(updatedHighscores)) {
+                    setHighscores(updatedHighscores);
+                    if (onBackToMenu) onBackToMenu();
+                    else window.location.reload();
+                } else {
+                    console.error("Invalid highscore response:", updatedHighscores);
+                    // Fallback: reload anyway to clear state
+                    window.location.reload();
+                }
             })
             .catch(err => {
                 console.error("Failed to save highscore:", err);
-                // Fallback: Proceed anyway
-                if (onBackToMenu) onBackToMenu();
-                else window.location.reload();
+                window.location.reload();
             });
     };
 
@@ -400,7 +414,7 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
                     <div style={{ marginTop: '30px', textAlign: 'center' }}>
                         <h3>{t.legends}</h3>
                         <ul style={{ listStyle: 'none', padding: 0 }}>
-                            {highscores.map((s, i) => (
+                            {Array.isArray(highscores) && highscores.map((s, i) => (
                                 <li key={i} style={{ fontSize: '18px', margin: '5px 0' }}>
                                     {i + 1}. <strong>{s.name}</strong> - {s.score} {t.pax} ({s.date})
                                 </li>
