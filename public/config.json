@@ -7,7 +7,7 @@
   "zoom": 13,
   "overpass": {
     "bbox": "49.38,7.68,49.48,7.85",
-    "queryRegex": "^(101|102|103|104)$"
+    "queryRegex": "^(101|102|103|104|105|106|107|108|112|114|115|116|117)$"
   },
   "initialFleet": {
     "101": [
@@ -36,6 +36,69 @@
         "type": "standard",
         "capacity": 50,
         "id": "104-0"
+      }
+    ],
+    "105": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "105-0"
+      }
+    ],
+    "106": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "106-0"
+      }
+    ],
+    "107": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "107-0"
+      }
+    ],
+    "108": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "108-0"
+      }
+    ],
+    "112": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "112-0"
+      }
+    ],
+    "114": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "114-0"
+      }
+    ],
+    "115": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "115-0"
+      }
+    ],
+    "116": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "116-0"
+      }
+    ],
+    "117": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "117-0"
       }
     ]
   },
