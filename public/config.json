@@ -106,6 +106,7 @@
     "name": "FCK Heimspiel",
     "emoji": "⚽",
     "buttonText": "HEIMSPIEL (EVENT)",
+    "autoTrigger": 1000,
     "spawnAmount": 300,
     "message": "Massenansturm am Betzenberg! 👹"
   },

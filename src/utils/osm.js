@@ -1,3 +1,13 @@
+const stringToColor = (str) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    // Multiply by Golden Angle (approx 137.5 deg) to separate sequential hashes
+    const hue = Math.floor(Math.abs((hash * 137.508) % 360));
+    return `hsl(${hue}, 70%, 45%)`; // 45% lightness for better visibility on map
+};
+
 export const parseOverpassResponse = (data) => {
     if (!data || !data.elements) return [];
 
@@ -159,10 +169,7 @@ export const parseOverpassResponse = (data) => {
             name: relation.tags.name || relation.tags.ref,
             path: fullPath,
             stops: stops,
-            color: relation.tags.ref === '101' ? 'blue' :
-                (relation.tags.ref === '102' ? 'green' :
-                    (relation.tags.ref === '103' ? 'orange' :
-                        (relation.tags.ref === '104' ? 'purple' : 'gray')))
+            color: stringToColor(relation.tags.ref)
         });
     });
 

@@ -9,7 +9,9 @@ import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import { fetchBusRoute } from '../services/api';
 import { parseOverpassResponse } from '../utils/osm';
 import { translations } from '../utils/translations';
+import { translations } from '../utils/translations';
 import LineControls from './LineControls';
+import Notification from './Notification';
 
 let DefaultIcon = L.icon({
     iconUrl: icon,
@@ -43,6 +45,10 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
     const [money, setMoney] = useState(0);
     const [totalPassengers, setTotalPassengers] = useState(0);
     const [gameOver, setGameOver] = useState(false);
+
+    // Notification State
+    const [notification, setNotification] = useState(null);
+    const [nextEventThreshold, setNextEventThreshold] = useState(null);
 
     // Simulation Control
     const [simulationSpeed, setSimulationSpeed] = useState(1);
@@ -94,6 +100,13 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
 
                 setConfig(conf);
                 setFleet(conf.initialFleet || {});
+
+                // Set initial event threshold from config
+                if (conf.event && conf.event.autoTrigger) {
+                    setNextEventThreshold(conf.event.autoTrigger);
+                } else {
+                    setNextEventThreshold(1000); // Default fallback
+                }
 
                 // Prioritize session config (Start Menu) over config.json
                 if (sessionConfig.startCapital !== undefined) {
@@ -252,13 +265,34 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
                 next[randomStopId] = (next[randomStopId] || 0) + batchSize;
             }
 
-            alert(`${config.event.emoji} ${config.event.name}: ${config.event.message}`);
+            // alert(`${config.event.emoji} ${config.event.name}: ${config.event.message}`);
+            setNotification({
+                message: `${config.event.emoji} ${config.event.name}: ${config.event.message}`,
+                type: 'event'
+            });
             return next;
         });
     };
 
+    // Automatic Event Trigger
+    useEffect(() => {
+        if (!config || nextEventThreshold === null) return;
+
+        if (totalPassengers >= nextEventThreshold) {
+            triggerFCKEvent();
+            // Increment by the configured amount or default 1000
+            const step = config.event?.autoTrigger || 1000;
+            setNextEventThreshold(prev => prev + step);
+        }
+    }, [totalPassengers, nextEventThreshold, config]);
+
     return (
         <div style={{ height: '100%', width: '100%', position: 'relative' }}>
+            <Notification
+                message={notification?.message}
+                type={notification?.type}
+                onClose={() => setNotification(null)}
+            />
             <LineControls
                 routes={routes}
                 fleet={fleet} // Updated prop
