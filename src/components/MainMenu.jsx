@@ -142,6 +142,70 @@ const MainMenu = ({ onStartGame }) => {
         </div>
     );
 
+    // --- HIGHSCORE DEBUG ---
+    const [debugOutput, setDebugOutput] = useState("Ready to test...");
+
+    const checkConnection = async () => {
+        setDebugOutput("Connecting to API...");
+        try {
+            const res = await fetch('/api/highscores');
+            const data = await res.json();
+            setDebugOutput("GET Success:\n" + JSON.stringify(data, null, 2));
+        } catch (err) {
+            setDebugOutput("GET Check Failed:\n" + err.toString());
+        }
+    };
+
+    const createTestEntry = async () => {
+        setDebugOutput("Sending entry...");
+        try {
+            const testData = { name: "DebugUser", score: 999, date: "Test" };
+            const res = await fetch('/api/highscores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(testData)
+            });
+            const data = await res.json();
+            setDebugOutput("POST Response:\n" + JSON.stringify(data, null, 2));
+        } catch (err) {
+            setDebugOutput("POST Failed:\n" + err.toString());
+        }
+    };
+
+    const renderHighscoreDebug = () => (
+        <div style={containerStyle}>
+            <div style={{ ...modalStyle, maxWidth: '800px' }}>
+                <h2>Highscore Debugger</h2>
+
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '20px' }}>
+                    <button style={{ ...buttonStyle, fontSize: '16px', width: 'auto' }} onClick={checkConnection}>
+                        📡 GET Check
+                    </button>
+                    <button style={{ ...buttonStyle, fontSize: '16px', width: 'auto', background: '#FF5722', color: 'white' }} onClick={createTestEntry}>
+                        📝 Create Test Entry
+                    </button>
+                </div>
+
+                <pre style={{
+                    textAlign: 'left',
+                    background: '#222',
+                    padding: '15px',
+                    borderRadius: '5px',
+                    overflow: 'auto',
+                    height: '300px',
+                    fontSize: '14px',
+                    fontFamily: 'monospace'
+                }}>
+                    {debugOutput}
+                </pre>
+
+                <button style={{ ...buttonStyle, width: '200px', fontSize: '18px', marginTop: '20px' }} onClick={() => setView('settings')}>
+                    {t.back}
+                </button>
+            </div>
+        </div>
+    );
+
     const renderSettings = () => (
         <div style={containerStyle}>
             <div style={modalStyle}>
@@ -182,6 +246,14 @@ const MainMenu = ({ onStartGame }) => {
                     </button>
                     {updateMsg && <div style={{ fontSize: '14px', marginBottom: '10px' }}>{updateMsg}</div>}
 
+                    <button
+                        style={{ ...buttonStyle, width: '100%', fontSize: '18px', background: '#9C27B0', color: 'white', margin: '10px 0' }}
+                        onClick={() => setView('highscore_debug')}
+                    >
+                        🛠 Highscore Debug
+                    </button>
+
+
                     <div style={{ height: '10px' }}></div>
 
                     <h3>{t.infoTitle}</h3>
@@ -208,6 +280,7 @@ const MainMenu = ({ onStartGame }) => {
 
     if (view === 'settings') return renderSettings();
     if (view === 'help') return renderHelp();
+    if (view === 'highscore_debug') return renderHighscoreDebug();
     return renderMainMap();
 };
 
