@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import pkg from '../../package.json';
-import { updateLocalBusData } from '../services/api';
+import { updateLocalBusData, fetchBusRoute } from '../services/api';
 import { translations } from '../utils/translations';
 
 const MainMenu = ({ onStartGame }) => {
@@ -64,7 +64,7 @@ const MainMenu = ({ onStartGame }) => {
             const res = await fetch('/config.json');
             const conf = await res.json();
 
-            await updateLocalBusData(conf.overpass.bbox, conf.overpass.queryRegex);
+            await fetchBusRoute(conf.overpass.bbox, conf.overpass.queryRegex);
             setUpdateMsg(t.updateSuccess);
         } catch (err) {
             console.error(err);
