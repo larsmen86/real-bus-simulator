@@ -61,6 +61,51 @@ app.post('/api/highscores', async (req, res) => {
     }
 });
 
+
+const BUS_CACHE_FILE = path.join(__dirname, 'bus_data_cache.json');
+const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 Hours
+
+// Get Bus Data Cache
+app.get('/api/bus_data', async (req, res) => {
+    try {
+        const data = await fs.readFile(BUS_CACHE_FILE, 'utf-8');
+        const cached = JSON.parse(data);
+        const age = Date.now() - cached.timestamp;
+
+        if (age > MAX_AGE_MS) {
+            return res.status(404).json({ error: "Cache expired" });
+        }
+
+        res.json(cached.data);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            res.status(404).json({ error: "No cache found" });
+        } else {
+            console.error('Error reading bus cache:', error);
+            res.status(500).json({ error: 'Failed to read cache' });
+        }
+    }
+});
+
+// Save Bus Data Cache
+app.post('/api/bus_data', async (req, res) => {
+    try {
+        const newData = req.body;
+        if (!newData) return res.status(400).json({ error: "No data" });
+
+        const cacheEntry = {
+            timestamp: Date.now(),
+            data: newData
+        };
+
+        await fs.writeFile(BUS_CACHE_FILE, JSON.stringify(cacheEntry, null, 2));
+        res.json({ success: true, timestamp: cacheEntry.timestamp });
+    } catch (error) {
+        console.error('Error saving bus cache:', error);
+        res.status(500).json({ error: 'Failed to save cache' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

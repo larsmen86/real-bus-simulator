@@ -137,11 +137,7 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
                 }
 
                 // Prioritize session config (Start Menu) over config.json
-                if (sessionConfig.startCapital !== undefined) {
-                    setMoney(sessionConfig.startCapital);
-                } else if (conf.startCapital !== undefined) {
-                    setMoney(conf.startCapital);
-                }
+                // Start Capital is now calculated based on lines found (see below)
 
                 // 2. Load OSM Data
                 console.log(`Fetching Buses for ${conf.cityName}...`);
@@ -152,6 +148,11 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
                     setError("No bus lines found. Check config regex/bbox.");
                 } else {
                     setRoutes(parsedRoutes);
+
+                    // Calculate Start Capital: 1000 per Line (or from config)
+                    const perLine = conf.startCapitalPerLine || 1000;
+                    const calculatedCapital = parsedRoutes.length * perLine;
+                    setMoney(calculatedCapital);
 
                     // Initialize waiting passengers
                     const initialWaiting = {};

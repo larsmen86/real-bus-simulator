@@ -69,6 +69,18 @@ export const updateLocalBusData = async (bbox = "49.38,7.68,49.48,7.85", regex =
             console.warn("Failed to save to localStorage (quota exceeded?)", storageError);
         }
 
+        // Save to Database Cache (via API)
+        try {
+            await fetch('/api/bus_data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            console.log("Data saved to database cache via API.");
+        } catch (apiError) {
+            console.warn("Failed to save to database cache", apiError);
+        }
+
         return data;
     } catch (error) {
         console.error("Update failed:", error);
@@ -77,6 +89,18 @@ export const updateLocalBusData = async (bbox = "49.38,7.68,49.48,7.85", regex =
 };
 
 export const fetchBusRoute = async (bbox, regex) => {
+    // 0. Try Database Cache (API)
+    try {
+        const response = await fetch('/api/bus_data');
+        if (response.ok) {
+            const data = await response.json();
+            console.log("Loaded bus data from DB Cache.");
+            return data;
+        }
+    } catch (e) {
+        console.warn("Database cache fetch failed", e);
+    }
+
     // 1. Try LocalStorage
     try {
         const cached = localStorage.getItem(CACHE_KEY);

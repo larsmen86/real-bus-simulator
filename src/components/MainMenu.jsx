@@ -10,7 +10,7 @@ const MainMenu = ({ onStartGame }) => {
     // Settings States
     // Default language DE as requested
     const [language, setLanguage] = useState('de');
-    const [customCapital, setCustomCapital] = useState('');
+    // const [customCapital, setCustomCapital] = useState(''); // Removed as requested
     const [updating, setUpdating] = useState(false);
     const [updateMsg, setUpdateMsg] = useState("");
 
@@ -23,8 +23,9 @@ const MainMenu = ({ onStartGame }) => {
             help: "Hilfe",
             back: "Zurück",
             language: "Sprache",
-            capital: "Startkapital (Session)",
-            capitalPlaceholder: "Standard (aus config.json)",
+            language: "Sprache",
+            // capital: "Startkapital (Session)",
+            // capitalPlaceholder: "Standard (aus config.json)",
             infoTitle: "Über das Spiel",
             infoText: "Real Bus Simulator ist ein Open-Source-Projekt basierend auf OpenStreetMap-Daten. Entwickelt mit React & Vite.\n\nFür Jakob ❤️",
             helpTitle: "Spielanleitung",
@@ -39,8 +40,9 @@ const MainMenu = ({ onStartGame }) => {
             help: "Help",
             back: "Back",
             language: "Language",
-            capital: "Start Capital (Session)",
-            capitalPlaceholder: "Default (from config.json)",
+            language: "Language",
+            // capital: "Start Capital (Session)",
+            // capitalPlaceholder: "Default (from config.json)",
             infoTitle: "About",
             infoText: "Real Bus Simulator is an open-source project based on OpenStreetMap data. Built with React & Vite.\n\nFor Jakob ❤️",
             helpTitle: "How to Play",
@@ -80,7 +82,7 @@ const MainMenu = ({ onStartGame }) => {
     const handleStart = () => {
         const config = {
             language,
-            startCapital: customCapital ? parseInt(customCapital, 10) : undefined
+            // startCapital: customCapital ? parseInt(customCapital, 10) : undefined // Removed
         };
         onStartGame(config);
     };
@@ -171,14 +173,7 @@ const MainMenu = ({ onStartGame }) => {
                         </button>
                     </div>
 
-                    <label><strong>{t.capital}</strong></label>
-                    <input
-                        type="number"
-                        placeholder={t.capitalPlaceholder}
-                        value={customCapital}
-                        onChange={(e) => setCustomCapital(e.target.value)}
-                        style={inputStyle}
-                    />
+                    {/* Capital Input Removed */}
 
                     <hr style={{ borderColor: 'rgba(255,255,255,0.2)', margin: '20px 0' }} />
 

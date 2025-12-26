@@ -116,5 +116,5 @@
     "minPassengers": 1,
     "maxPassengers": 5
   },
-  "startCapital": 5000
+  "startCapitalPerLine": 1000
 }
