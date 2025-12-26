@@ -47,23 +47,61 @@ const LineControls = ({
     // Mobile State
     const [mobileActivePanel, setMobileActivePanel] = useState(null); // 'left', 'right', or null
 
-    const toggleMobile = () => {
-        setMobileActivePanel(prev => {
-            if (prev === 'left') return 'right';
-            if (prev === 'right') return null;
-            return 'left';
-        });
+    const toggleLeft = () => {
+        setMobileActivePanel(prev => prev === 'left' ? null : 'left');
     };
+
+    const toggleRight = () => {
+        setMobileActivePanel(prev => prev === 'right' ? null : 'right');
+    };
+
+    // Desktop State
+    const [desktopLeftOpen, setDesktopLeftOpen] = useState(true);
+    const [desktopRightOpen, setDesktopRightOpen] = useState(true);
 
     return (
         <>
             {/* Mobile Toggle Button */}
-            <button className="mobile-toggle-btn" onClick={toggleMobile}>
-                {mobileActivePanel === 'left' ? '📊' : (mobileActivePanel === 'right' ? '❌' : '🚌')}
-            </button>
+            {/* Mobile Toggle Buttons (Bottom Center) */}
+            <div className="mobile-controls-container">
+                <button
+                    className={`mobile-toggle-btn ${mobileActivePanel === 'left' ? 'active' : ''}`}
+                    onClick={toggleLeft}
+                    title={t.busManagement}
+                >
+                    🚌
+                </button>
+                <button
+                    className={`mobile-toggle-btn ${mobileActivePanel === 'right' ? 'active' : ''}`}
+                    onClick={toggleRight}
+                    title={t.statistics}
+                >
+                    📊
+                </button>
+            </div>
+
+            {/* Desktop Re-Open Buttons */}
+            {!desktopLeftOpen && (
+                <button className="desktop-toggle-btn left" onClick={() => setDesktopLeftOpen(true)} title={t.openBusManagement || "Open Bus Management"}>
+                    🚌
+                </button>
+            )}
+            {!desktopRightOpen && (
+                <button className="desktop-toggle-btn right" onClick={() => setDesktopRightOpen(true)} title={t.openStatistics || "Open Statistics"}>
+                    📊
+                </button>
+            )}
 
             {/* LEFT PANEL: CONTROLS & MANAGEMENT */}
-            <div className={`game-panel panel-left ${mobileActivePanel === 'left' ? 'open-mobile' : ''}`}>
+            <div className={`game-panel panel-left ${mobileActivePanel === 'left' ? 'open-mobile' : ''} ${!desktopLeftOpen ? 'desktop-closed' : ''}`}>
+                {/* Mobile Header with Close Button */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    {/* Minimize Button (Desktop) */}
+                    <span className="desktop-minimize-btn" onClick={() => setDesktopLeftOpen(false)} title="Minimize">◀</span>
+                    {/* Placeholder for layout balance if needed, or just push close button right */}
+                    <span className="panel-close-btn" onClick={() => setMobileActivePanel(null)}>❌</span>
+                </div>
+
                 {/* Money Header */}
                 <div style={{ textAlign: 'center', marginBottom: '15px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
                     <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>{t.money}</div>
@@ -172,7 +210,13 @@ const LineControls = ({
             </div>
 
             {/* RIGHT PANEL: STATS */}
-            <div className={`game-panel panel-right ${mobileActivePanel === 'right' ? 'open-mobile' : ''}`}>
+            <div className={`game-panel panel-right ${mobileActivePanel === 'right' ? 'open-mobile' : ''} ${!desktopRightOpen ? 'desktop-closed' : ''}`}>
+                {/* Mobile Header with Close Button */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '10px' }}>
+                    <span className="desktop-minimize-btn" onClick={() => setDesktopRightOpen(false)} title="Minimize">▶</span>
+                    <span className="panel-close-btn" onClick={() => setMobileActivePanel(null)}>❌</span>
+                </div>
+
                 {/* GAME HEADER */}
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px', borderBottom: '2px solid #333', paddingBottom: '10px' }}>
                     <div style={{ textAlign: 'center' }}>

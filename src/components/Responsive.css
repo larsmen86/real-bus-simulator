@@ -12,7 +12,8 @@
     height: 100vh;
     background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
     color: white;
-    font-family: Arial, sans-serif; /* Keep consistent with previous inline style */
+    font-family: Arial, sans-serif;
+    /* Keep consistent with previous inline style */
     padding: 20px;
 }
 
@@ -118,7 +119,8 @@
     z-index: 9999;
     max-height: 90vh;
     overflow-y: auto;
-    width: 300px; /* Default width */
+    width: 300px;
+    /* Default width */
     transition: all 0.3s ease;
 }
 
@@ -133,81 +135,139 @@
 }
 
 /* Mobile Toggle Button (Visible only on mobile) */
-.mobile-toggle-btn {
+/* Mobile Toggle Buttons Container */
+.mobile-controls-container {
     display: none;
     position: absolute;
     bottom: 20px;
-    right: 20px;
+    left: 0;
+    right: 0;
+    justify-content: center;
+    gap: 20px;
+    z-index: 10000;
+    pointer-events: none;
+    /* Let clicks pass through container */
+}
+
+.mobile-toggle-btn {
+    pointer-events: auto;
+    /* Re-enable clicks on buttons */
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: #FF9800; /* Distinct color */
+    background: #FF9800;
     color: white;
     border: none;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    z-index: 10000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     font-size: 24px;
+    display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.mobile-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+.mobile-toggle-btn.active {
+    background: #F57C00;
+    /* Darker orange when active */
+    border: 3px solid white;
+}
+
+/* Close Button inside panels */
+.panel-close-btn {
+    display: none;
+    /* Hidden on desktop */
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #666;
+    cursor: pointer;
+    padding: 0 10px;
+    margin-left: auto;
+    /* Push to right */
 }
 
 /* --- Responsive Media Queries (Mobile) --- */
-@media (max-width: 768px) {
+/* --- Responsive Media Queries (Mobile & Landscape) --- */
+@media (max-width: 768px),
+(max-height: 600px) {
+
     /* Main Menu Mobile */
     .main-menu-title {
-        font-size: 42px; /* Smaller title */
+        font-size: 42px;
+        /* Smaller title */
         margin-bottom: 20px;
     }
 
     .menu-button {
-        width: 100%; /* Full width buttons */
+        width: 100%;
+        /* Full width buttons */
         max-width: 350px;
         font-size: 20px;
         padding: 12px;
     }
-    
+
     .map-selection-box {
         width: 100%;
         padding: 10px;
     }
 
     /* Hide table headers on very small screens if needed, or scroll */
-    .map-table th, .map-table td {
+    .map-table th,
+    .map-table td {
         padding: 10px 5px;
         font-size: 14px;
     }
-    
+
     .menu-modal {
         padding: 15px;
         max-height: 90vh;
     }
 
     /* Game UI Mobile */
-    .mobile-toggle-btn {
-        display: flex; /* Show toggle button */
+    /* Game UI Mobile */
+    /* Game UI Mobile */
+    .mobile-controls-container {
+        display: flex;
+        /* Show toggle buttons */
+    }
+
+    .panel-close-btn {
+        display: block;
+        /* Show close button */
     }
 
     .game-panel {
-        position: fixed; /* Fixed to viewport */
+        position: fixed;
+        /* Fixed to viewport */
         left: 0;
         right: 0;
         bottom: 0;
-        top: auto; /* Override top */
+        top: auto;
+        /* Override top */
         width: 100%;
-        border-radius: 15px 15px 0 0; /* Rounded top corners only */
-        max-height: 60vh; /* Takes up bottom part of screen */
-        transform: translateY(110%); /* Hidden by default */
+        border-radius: 15px 15px 0 0;
+        /* Rounded top corners only */
+        max-height: 60vh;
+        /* Takes up bottom part of screen */
+        transform: translateY(110%);
+        /* Hidden by default */
     }
 
     .game-panel.open-mobile {
-        transform: translateY(0); /* Slide up */
+        transform: translateY(0);
+        /* Slide up */
     }
-    
+
     /* When one panel is open, ensure it sits on top */
     .panel-left.open-mobile {
         z-index: 10001;
     }
+
     .panel-right.open-mobile {
         z-index: 10001;
     }
@@ -215,5 +275,60 @@
     /* Hide non-active panel completely to avoid interaction issues */
     .game-panel:not(.open-mobile) {
         display: none;
+    }
+}
+
+/* --- Desktop Specifics (Collapsible Panels) --- */
+@media (min-width: 769px) and (min-height: 601px) {
+    .panel-close-btn {
+        display: none !important;
+        /* Force hide mobile X on desktop */
+    }
+
+    .desktop-minimize-btn {
+        display: inline-block;
+    }
+
+    /* Desktop Toggle Buttons (Floating Re-open buttons) */
+    .desktop-toggle-btn {
+        position: absolute;
+        top: 20px;
+        background: white;
+        border: 1px solid #ccc;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        padding: 10px;
+        cursor: pointer;
+        z-index: 9998;
+        /* Below panel but accessible */
+        border-radius: 0 8px 8px 0;
+        font-size: 20px;
+        transition: transform 0.2s;
+    }
+
+    .desktop-toggle-btn:hover {
+        background: #f0f0f0;
+    }
+
+    .desktop-toggle-btn.left {
+        left: 0;
+        border-radius: 0 8px 8px 0;
+    }
+
+    .desktop-toggle-btn.right {
+        right: 0;
+        border-radius: 8px 0 0 8px;
+    }
+
+    /* Minimized States */
+    .game-panel.desktop-closed {
+        /* Move off-screen */
+    }
+
+    .panel-left.desktop-closed {
+        transform: translateX(-120%);
+    }
+
+    .panel-right.desktop-closed {
+        transform: translateX(120%);
     }
 }
