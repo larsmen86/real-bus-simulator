@@ -1,7 +1,7 @@
 {
   "name": "real-bus-simulator",
   "private": true,
-  "version": "0.8.3",
+  "version": "0.8.3.1",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"node server.js\" \"vite\"",

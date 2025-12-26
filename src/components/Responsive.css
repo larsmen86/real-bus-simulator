@@ -229,6 +229,14 @@
     .mobile-controls-container {
         display: flex;
         /* Show toggle buttons */
+        position: fixed;
+        /* Fix to viewport, ignoring parent container height issues */
+        bottom: 80px;
+        /* Move up significantly to avoid bottom bars */
+        padding-bottom: env(safe-area-inset-bottom);
+        /* Support iPhone X+ safe areas */
+        z-index: 99999;
+        /* Max z-index */
     }
 
     .panel-close-btn {
