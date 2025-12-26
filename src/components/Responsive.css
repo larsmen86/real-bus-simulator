@@ -191,21 +191,19 @@
     /* Push to right */
 }
 
-/* --- Responsive Media Queries (Mobile) --- */
 /* --- Responsive Media Queries (Mobile & Landscape) --- */
-@media (max-width: 768px),
-(max-height: 600px) {
+/* Target: Phones, Tablets (Portrait/Landscape), and Small Landscape Screens */
+@media (max-width: 1024px),
+(max-height: 700px) {
 
     /* Main Menu Mobile */
     .main-menu-title {
         font-size: 42px;
-        /* Smaller title */
         margin-bottom: 20px;
     }
 
     .menu-button {
         width: 100%;
-        /* Full width buttons */
         max-width: 350px;
         font-size: 20px;
         padding: 12px;
@@ -216,7 +214,6 @@
         padding: 10px;
     }
 
-    /* Hide table headers on very small screens if needed, or scroll */
     .map-table th,
     .map-table td {
         padding: 10px 5px;
@@ -228,8 +225,6 @@
         max-height: 90vh;
     }
 
-    /* Game UI Mobile */
-    /* Game UI Mobile */
     /* Game UI Mobile */
     .mobile-controls-container {
         display: flex;
@@ -263,7 +258,6 @@
         /* Slide up */
     }
 
-    /* When one panel is open, ensure it sits on top */
     .panel-left.open-mobile {
         z-index: 10001;
     }
@@ -272,14 +266,13 @@
         z-index: 10001;
     }
 
-    /* Hide non-active panel completely to avoid interaction issues */
     .game-panel:not(.open-mobile) {
         display: none;
     }
 }
 
-/* --- Desktop Specifics (Collapsible Panels) --- */
-@media (min-width: 769px) and (min-height: 601px) {
+/* --- Desktop Specifics (Large Screens only) --- */
+@media (min-width: 1025px) and (min-height: 701px) {
     .panel-close-btn {
         display: none !important;
         /* Force hide mobile X on desktop */
@@ -320,10 +313,6 @@
     }
 
     /* Minimized States */
-    .game-panel.desktop-closed {
-        /* Move off-screen */
-    }
-
     .panel-left.desktop-closed {
         transform: translateX(-120%);
     }
