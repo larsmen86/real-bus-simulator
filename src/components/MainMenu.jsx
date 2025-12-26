@@ -74,6 +74,24 @@ const MainMenu = ({ onStartGame }) => {
         }
     };
 
+    const [loadingDebug, setLoadingDebug] = useState(false);
+    const [debugData, setDebugData] = useState(null);
+
+    const handleCheckDebug = async () => {
+        setLoadingDebug(true);
+        setDebugData(null);
+        try {
+            const res = await fetch('http://localhost:3001/api/bus_data_debug');
+            if (!res.ok) throw new Error("Fetch failed");
+            const data = await res.json();
+            setDebugData(data);
+        } catch (err) {
+            setDebugData({ error: "Fehler beim Laden (Server läuft?)" });
+        } finally {
+            setLoadingDebug(false);
+        }
+    };
+
     // Auto-Update on Mount
     React.useEffect(() => {
         handleUpdateBusData();
@@ -178,6 +196,30 @@ const MainMenu = ({ onStartGame }) => {
                     <hr style={{ borderColor: 'rgba(255,255,255,0.2)', margin: '20px 0' }} />
 
                     {/* Auto-update runs on start, button removed as requested */}
+
+                    <hr style={{ borderColor: 'rgba(255,255,255,0.2)', margin: '20px 0' }} />
+
+                    <h3>Bus Data Debugger</h3>
+                    <button
+                        style={{ ...buttonStyle, width: '100%', fontSize: '16px', background: '#FF9800', color: 'white', marginTop: '10px' }}
+                        onClick={handleCheckDebug}
+                    >
+                        {loadingDebug ? "Lade..." : "Cache Prüfen"}
+                    </button>
+
+                    {debugData && (
+                        <div style={{ marginTop: '15px', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '5px', fontSize: '12px', textAlign: 'left', overflowX: 'auto' }}>
+                            <p><strong>Zeitstempel:</strong> {new Date(debugData.timestamp).toLocaleString()}</p>
+                            <p><strong>Größe:</strong> {debugData.sizeFormatted} ({debugData.dataSize} bytes)</p>
+                            <p><strong>Vorschau:</strong></p>
+                            <pre style={{ whiteSpace: 'pre-wrap', maxHeight: '100px', overflowY: 'auto' }}>{debugData.dataPreview}</pre>
+                            {debugData.dataSize > 1024 * 1024 && <p style={{ color: 'orange', fontWeight: 'bold' }}>⚠️ Datei &gt; 1MB</p>}
+                        </div>
+                    )}
+                    {debugData && debugData.error && (
+                        <div style={{ marginTop: '15px', color: 'red' }}>{debugData.error}</div>
+                    )}
+
 
                     <div style={{ height: '10px' }}></div>
 

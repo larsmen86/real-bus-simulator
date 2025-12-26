@@ -107,6 +107,39 @@ app.post('/api/bus_data', async (req, res) => {
     }
 });
 
+// Debug Bus Data Cache
+app.get('/api/bus_data_debug', async (req, res) => {
+    try {
+        const stats = await fs.stat(BUS_CACHE_FILE);
+        const data = await fs.readFile(BUS_CACHE_FILE, 'utf-8');
+        const cached = JSON.parse(data);
+
+        const sizeBytes = stats.size;
+        const sizeFormatted = (sizeBytes / (1024 * 1024)).toFixed(2) + ' MB';
+
+        // Create a preview (first 100 chars of data string)
+        let preview = "Invalid Data";
+        if (cached.data) {
+            preview = JSON.stringify(cached.data).substring(0, 500) + "...";
+        }
+
+        res.json({
+            timestamp: cached.timestamp,
+            dataSize: sizeBytes,
+            sizeFormatted: sizeFormatted,
+            dataPreview: preview
+        });
+
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            res.status(404).json({ error: "No cache found" });
+        } else {
+            console.error('Error reading bus cache debug:', error);
+            res.status(500).json({ error: 'Failed to read cache debug info' });
+        }
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
