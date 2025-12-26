@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { translations } from '../utils/translations';
-import { Marker, Popup } from 'react-leaflet';
+import { Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
 // Constants
@@ -41,7 +41,23 @@ const createBusIcon = (loadPercentage, type) => {
     });
 };
 
-const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop, onStatusUpdate, capacity = 50, type = 'standard', simulationSpeed = 1, isPaused = false, language = 'de' }) => {
+
+
+const BusMarker = ({
+    routePath,
+    stops,
+    busId,
+    startProgress = 0,
+    onArriveAtStop,
+    onStatusUpdate,
+    capacity = 50,
+    type = 'standard',
+    simulationSpeed = 1,
+    isPaused = false,
+    language = 'de',
+    isFollowed = false // Prop for follow mode
+}) => {
+    const map = useMap(); // Get map instance
     const t = translations[language];
     const [position, setPosition] = useState(null);
     const [passengers, setPassengers] = useState(0);
@@ -71,6 +87,16 @@ const BusMarker = ({ routePath, stops, busId, startProgress = 0, onArriveAtStop,
             onStatusUpdateRef.current(busId, passengers, capacity);
         }
     }, [passengers, busId, capacity]);
+
+    // Handle Follow Mode
+    useEffect(() => {
+        // console.log(`BusMarker ${busId} isFollowed: ${isFollowed}, pos: ${position}`);
+        if (isFollowed && position) {
+            // Use setView with animate: false to prevent "disappearing lines" artifact
+            // which happens when Leaflet is constantly re-animating pan
+            map.setView(position, map.getZoom(), { animate: false });
+        }
+    }, [isFollowed, position, map]);
 
     // Refs
     const requestRef = useRef();

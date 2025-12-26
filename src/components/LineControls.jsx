@@ -19,7 +19,9 @@ const LineControls = ({
     setSimulationSpeed,
     isPaused,
     setIsPaused,
-    language = 'de'
+    language = 'de',
+    onZoomToStop, // New prop
+    onZoomToBus   // New prop
 }) => {
     const t = translations[language];
 
@@ -52,7 +54,7 @@ const LineControls = ({
                 padding: '15px',
                 borderRadius: '8px',
                 boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                zIndex: 1000,
+                zIndex: 9999, // Bumped z-index
                 minWidth: '300px',
                 maxHeight: '90vh',
                 overflowY: 'auto'
@@ -173,7 +175,7 @@ const LineControls = ({
                 padding: '15px',
                 borderRadius: '8px',
                 boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                zIndex: 1000,
+                zIndex: 9999, // Bumped z-index
                 minWidth: '300px', // Wider implementation
                 maxHeight: '90vh',
                 overflowY: 'auto'
@@ -205,7 +207,18 @@ const LineControls = ({
                             </thead>
                             <tbody>
                                 {activeBuses.map((bus, idx) => (
-                                    <tr key={idx} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                                    <tr
+                                        key={idx}
+                                        style={{ borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            console.log("Clicked bus:", bus.id);
+                                            if (onZoomToBus) onZoomToBus(bus.id);
+                                            else console.error("onZoomToBus prop is missing!");
+                                        }}
+                                        onMouseDown={(e) => e.stopPropagation()} // Prevent drag start prop
+                                        title={t.jumpToBus || "Click to jump to bus"}
+                                    >
                                         <td style={{ padding: '4px 0' }}>
                                             {bus.id} <span style={{ fontSize: '9px', color: '#999' }}>({bus.capacity})</span>
                                         </td>
@@ -245,7 +258,18 @@ const LineControls = ({
                                     const lineStr = Array.from(info.lines).join(', ');
 
                                     return (
-                                        <tr key={stopId} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                                        <tr
+                                            key={stopId}
+                                            style={{ borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                console.log("Clicked stop:", stopId);
+                                                if (onZoomToStop) onZoomToStop(stopId);
+                                                else console.error("onZoomToStop prop is missing!");
+                                            }}
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            title={t.zoomToStop || "Click to zoom to stop"}
+                                        >
                                             <td style={{ padding: '4px 0', whiteSpace: 'nowrap', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 <div>{info.name}</div>
                                                 <div style={{ fontSize: '10px', color: '#666' }}>{t.line}: {lineStr}</div>

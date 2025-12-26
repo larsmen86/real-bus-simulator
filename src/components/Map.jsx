@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
 import BusMarker from './BusMarker';
 
 import 'leaflet/dist/leaflet.css';
@@ -26,6 +26,32 @@ const BUS_COST_STD = 1000;
 const BUS_COST_ART = 2000;
 const TICKET_PRICE = 10;
 const MAX_WAITING_LIMIT = 50;
+
+// Inner component to control map view
+const MapController = ({ viewState }) => {
+    const map = useMap();
+
+    useEffect(() => {
+        if (viewState) {
+            console.log("MapController: flying to", viewState);
+            map.flyTo(viewState.center, viewState.zoom, {
+                animate: true,
+                duration: 1.5
+            });
+        }
+    }, [viewState, map]);
+
+    return null;
+};
+
+// Component to handle map user interactions to break follow mode
+const MapInteractions = ({ onInteraction }) => {
+    useMapEvents({
+        dragstart: () => onInteraction(),
+        // click: () => onInteraction() // Disabled to prevent conflicts with UI clicks
+    });
+    return null;
+};
 
 const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
     const language = sessionConfig.language || 'de';
@@ -58,6 +84,10 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
     // Highscore State
     const [highscores, setHighscores] = useState([]);
     const [playerName, setPlayerName] = useState("");
+
+    // Map View Control
+    const [mapView, setMapView] = useState(null);
+    const [followingBusId, setFollowingBusId] = useState(null);
 
     // Load Highscores
     // Load Highscores
@@ -349,6 +379,37 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
         }
     }, [totalPassengers, nextEventThreshold, config]);
 
+    // Handlers for List Clicks
+    const handleZoomToStop = (stopId) => {
+        console.log("handleZoomToStop called for:", stopId);
+        // Find stop coordinates
+        for (const route of routes) {
+            // Fix: Loose comparison or explicit string conversion because stopId from object keys is string
+            const stop = route.stops.find(s => String(s.id) === String(stopId));
+            if (stop) {
+                console.log("Stop found:", stop.position);
+                setMapView({
+                    center: stop.position,
+                    zoom: 18, // Close zoom for stops (increased from 16)
+                    timestamp: Date.now()
+                });
+                break;
+            }
+        }
+    };
+
+    const handleZoomToBus = (busId) => {
+        console.log("handleZoomToBus called for:", busId);
+        setFollowingBusId(busId);
+    };
+
+    const handleMapInteraction = () => {
+        if (followingBusId) {
+            console.log("User interaction, breaking follow mode");
+            setFollowingBusId(null);
+        }
+    };
+
     return (
         <div style={{ height: '100%', width: '100%', position: 'relative' }}>
             <Notification
@@ -360,6 +421,8 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
                 routes={routes}
                 fleet={fleet} // Updated prop
                 onBuyBus={handleBuyBus} // Updated prop
+                onZoomToStop={handleZoomToStop} // New prop
+                onZoomToBus={handleZoomToBus} // New prop
                 onTriggerEvent={triggerFCKEvent} // New prop
                 eventConfig={config ? config.event : null} // Pass event config
                 loading={loading}
@@ -426,6 +489,8 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
             )}
 
             <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }}>
+                <MapController viewState={mapView} />
+                <MapInteractions onInteraction={handleMapInteraction} />
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -461,13 +526,14 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
 
                         {(fleet[route.ref] || []).map((bus, idx) => {
                             // Map fleet array to BusMarkers. 
+                            const displayBusId = `${route.ref} (${idx + 1})`; // Consistent with BusMarker loop
                             return (
                                 <BusMarker
                                     key={bus.id} // use stable ID
                                     routePath={route.path}
                                     stops={route.stops}
                                     color={route.color}
-                                    busId={`${route.ref} (${idx + 1})`} // Keeping legacy Display Name format
+                                    busId={displayBusId}
                                     startProgress={0}
                                     capacity={bus.capacity} // Passing capacity!
                                     type={bus.type}
@@ -476,6 +542,7 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
                                     simulationSpeed={simulationSpeed}
                                     isPaused={isPaused}
                                     language={language}
+                                    isFollowed={followingBusId === displayBusId} // Fix: Check against display ID
                                 />
                             );
                         })}
