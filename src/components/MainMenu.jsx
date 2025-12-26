@@ -81,7 +81,7 @@ const MainMenu = ({ onStartGame }) => {
         setLoadingDebug(true);
         setDebugData(null);
         try {
-            const res = await fetch('http://localhost:3001/api/bus_data_debug');
+            const res = await fetch('/api/bus_data_debug');
             if (!res.ok) throw new Error("Fetch failed");
             const data = await res.json();
             setDebugData(data);
