@@ -192,9 +192,10 @@
 }
 
 /* --- Responsive Media Queries (Mobile & Landscape) --- */
+/* --- Responsive Media Queries (Mobile & Landscape) --- */
 /* Target: Phones, Tablets (Portrait/Landscape), and Small Landscape Screens */
-@media (max-width: 1024px),
-(max-height: 700px) {
+@media (max-width: 768px),
+(max-height: 600px) {
 
     /* Main Menu Mobile */
     .main-menu-title {
@@ -231,7 +232,7 @@
         /* Show toggle buttons */
         position: fixed;
         /* Fix to viewport, ignoring parent container height issues */
-        bottom: 80px;
+        bottom: 40px;
         /* Move up significantly to avoid bottom bars */
         padding-bottom: env(safe-area-inset-bottom);
         /* Support iPhone X+ safe areas */
@@ -280,7 +281,7 @@
 }
 
 /* --- Desktop Specifics (Large Screens only) --- */
-@media (min-width: 1025px) and (min-height: 701px) {
+@media (min-width: 769px) and (min-height: 601px) {
     .panel-close-btn {
         display: none !important;
         /* Force hide mobile X on desktop */
