@@ -151,9 +151,14 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
         const initSimulator = async () => {
             setLoading(true);
             try {
-                // 1. Load Config
-                const configRes = await fetch('/config.json');
-                if (!configRes.ok) throw new Error("Could not load config.json");
+                // 1. Load Config (Dynamic URL or default)
+                const configUrl = sessionConfig.mapConfigUrl || '/maps/kaiserslautern.json';
+                const mapId = sessionConfig.mapId || 'kaiserslautern';
+
+                console.log(`Loading config from: ${configUrl} (ID: ${mapId})`);
+
+                const configRes = await fetch(configUrl);
+                if (!configRes.ok) throw new Error(`Could not load config from ${configUrl}`);
                 const conf = await configRes.json();
 
                 setConfig(conf);
@@ -171,7 +176,7 @@ const MapComponent = ({ sessionConfig = {}, onBackToMenu }) => {
 
                 // 2. Load OSM Data
                 console.log(`Fetching Buses for ${conf.cityName}...`);
-                const data = await fetchBusRoute(conf.overpass.bbox, conf.overpass.queryRegex);
+                const data = await fetchBusRoute(mapId, conf.overpass.bbox, conf.overpass.queryRegex);
                 const parsedRoutes = parseOverpassResponse(data);
 
                 if (parsedRoutes.length === 0) {

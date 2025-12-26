@@ -4,15 +4,18 @@ import { updateLocalBusData, fetchBusRoute } from '../services/api';
 import { translations } from '../utils/translations';
 
 const MainMenu = ({ onStartGame }) => {
-    // Menu States: 'main', 'settings', 'help'
+    // Menu States: 'main', 'settings', 'help', 'map-selection'
     const [view, setView] = useState('main');
 
     // Settings States
-    // Default language DE as requested
     const [language, setLanguage] = useState('de');
-    // const [customCapital, setCustomCapital] = useState(''); // Removed as requested
     const [updating, setUpdating] = useState(false);
     const [updateMsg, setUpdateMsg] = useState("");
+
+    // Map Selection State
+    const [maps, setMaps] = useState([]);
+    const [selectedMapId, setSelectedMapId] = useState(null);
+    const [loadingMaps, setLoadingMaps] = useState(true);
 
     // Texts
     const texts = {
@@ -23,15 +26,15 @@ const MainMenu = ({ onStartGame }) => {
             help: "Hilfe",
             back: "Zurück",
             language: "Sprache",
-            language: "Sprache",
-            // capital: "Startkapital (Session)",
-            // capitalPlaceholder: "Standard (aus config.json)",
             infoTitle: "Über das Spiel",
             infoText: "Real Bus Simulator ist ein Open-Source-Projekt basierend auf OpenStreetMap-Daten. Entwickelt mit React & Vite.\n\nFür Jakob ❤️",
             helpTitle: "Spielanleitung",
             helpText: "Willkommen! Deine Aufgabe ist es, ein Busunternehmen zu führen. Dies ist eine einfache Simulation: Kaufe Busse, bediene Linien und transportiere Passagiere. Achte darauf, dass Haltestellen nicht überfüllt sind (>50 Wartende = Game Over)! Verdiene Geld durch Tickets und baue deine Flotte aus.",
             createdBy: "Erstellt von Lars Greipl mit Gemini 3 in Antigravity",
-            version: "Version"
+            version: "Version",
+            selectMap: "Karte wählen",
+            loadingMaps: "Lade Karten...",
+            noMapSelected: "Bitte wähle eine Karte!"
         },
         en: {
             title: "Real Bus Simulator",
@@ -40,38 +43,106 @@ const MainMenu = ({ onStartGame }) => {
             help: "Help",
             back: "Back",
             language: "Language",
-            language: "Language",
-            // capital: "Start Capital (Session)",
-            // capitalPlaceholder: "Default (from config.json)",
             infoTitle: "About",
             infoText: "Real Bus Simulator is an open-source project based on OpenStreetMap data. Built with React & Vite.\n\nFor Jakob ❤️",
             helpTitle: "How to Play",
             helpText: "Welcome! Your task is to manage a bus company. This is a simple simulation: Buy buses, serve lines, and transport passengers. Ensure stops don't get overcrowded (>50 waiting = Game Over)! Earn money from tickets and expand your fleet.",
             createdBy: "Created by Lars Greipl with Gemini 3 in Antigravity",
-            version: "Version"
+            version: "Version",
+            selectMap: "Select Map",
+            loadingMaps: "Loading maps...",
+            noMapSelected: "Please select a map!"
         }
     };
 
     const t = { ...texts[language], ...translations[language] };
 
-    const handleUpdateBusData = async () => {
-        if (updating) return;
+    const checkAllMaps = async (mapList) => {
         setUpdating(true);
-        setUpdateMsg(t.updating);
+        setUpdateMsg("Prüfe Kartendaten...");
 
-        try {
-            // Fetch config to get current Overpass settings
-            const res = await fetch('/config.json');
-            const conf = await res.json();
+        const updatedMaps = [...mapList];
+        let changed = false;
 
-            await fetchBusRoute(conf.overpass.bbox, conf.overpass.queryRegex);
-            setUpdateMsg(t.updateSuccess);
-        } catch (err) {
-            console.error(err);
-            setUpdateMsg(t.updateError);
-        } finally {
-            setUpdating(false);
+        for (let i = 0; i < updatedMaps.length; i++) {
+            const map = updatedMaps[i];
+            try {
+                setUpdateMsg(`Prüfe Daten für ${map.name}...`);
+
+                // Fetch config for this map
+                const configRes = await fetch(`/maps/${map.file}`);
+                if (!configRes.ok) throw new Error(`Config load failed for ${map.name}`);
+                const conf = await configRes.json();
+
+                // MERGE METADATA into map object if available in config
+                if (conf.description) {
+                    map.description = conf.description;
+                    changed = true;
+                }
+                if (conf.author) {
+                    map.author = conf.author;
+                    changed = true;
+                }
+
+                // Check/Fetch Data (DB -> LocalStorage -> API)
+                await fetchBusRoute(map.id, conf.overpass.bbox, conf.overpass.queryRegex);
+
+            } catch (err) {
+                console.error(`Error checking map ${map.name}:`, err);
+            }
         }
+
+        if (changed) setMaps(updatedMaps);
+
+        setUpdateMsg(t.updateSuccess);
+
+        // Clear message after 3 seconds
+        setTimeout(() => {
+            setUpdating(false);
+            setUpdateMsg("");
+        }, 3000);
+    };
+
+    // Fetch Maps on Mount
+    React.useEffect(() => {
+        const loadMaps = async () => {
+            try {
+                const res = await fetch('/maps/maps.json');
+                if (!res.ok) throw new Error("Failed to load maps list");
+                const list = await res.json();
+                setMaps(list);
+                if (list.length > 0) setSelectedMapId(list[0].id);
+
+                // Trigger data check for all maps
+                checkAllMaps(list);
+
+            } catch (e) {
+                console.error("Maps load error:", e);
+                setUpdateMsg("Fehler beim Laden der Kartenliste");
+            } finally {
+                setLoadingMaps(false);
+            }
+        };
+        loadMaps();
+    }, []);
+
+    const handleStart = () => {
+        const selectedMap = maps.find(m => m.id === selectedMapId);
+        if (!selectedMap) {
+            alert(t.noMapSelected);
+            return;
+        }
+
+        const config = {
+            language,
+            mapId: selectedMap.id,
+            mapConfigUrl: `/maps/${selectedMap.file}`
+        };
+        onStartGame(config);
+    };
+
+    const handleOpenMapSelection = () => {
+        setView('map-selection');
     };
 
     const [loadingDebug, setLoadingDebug] = useState(false);
@@ -81,7 +152,9 @@ const MainMenu = ({ onStartGame }) => {
         setLoadingDebug(true);
         setDebugData(null);
         try {
-            const res = await fetch('/api/bus_data_debug');
+            // Check debug for selected map if possible, else default
+            const mapIdParam = selectedMapId || 'default';
+            const res = await fetch(`/api/bus_data_debug?mapId=${mapIdParam}`);
             if (!res.ok) throw new Error("Fetch failed");
             const data = await res.json();
             setDebugData(data);
@@ -90,19 +163,6 @@ const MainMenu = ({ onStartGame }) => {
         } finally {
             setLoadingDebug(false);
         }
-    };
-
-    // Auto-Update on Mount
-    React.useEffect(() => {
-        handleUpdateBusData();
-    }, []);
-
-    const handleStart = () => {
-        const config = {
-            language,
-            // startCapital: customCapital ? parseInt(customCapital, 10) : undefined // Removed
-        };
-        onStartGame(config);
     };
 
     // Shared Styles
@@ -132,15 +192,29 @@ const MainMenu = ({ onStartGame }) => {
         transition: 'transform 0.1s'
     };
 
-    const inputStyle = {
-        padding: '10px',
-        fontSize: '18px',
-        borderRadius: '5px',
-        border: '1px solid #ccc',
-        width: '100%',
-        marginTop: '5px',
-        marginBottom: '15px'
+    const tableHeaderStyle = {
+        padding: '15px',
+        textAlign: 'left',
+        borderBottom: '2px solid rgba(255,255,255,0.3)',
+        fontSize: '18px'
     };
+
+    const tableCellStyle = {
+        padding: '15px',
+        borderBottom: '1px solid rgba(255,255,255,0.1)'
+    };
+
+    const mapCardStyle = (isActive) => ({
+        padding: '10px',
+        margin: '10px',
+        border: isActive ? '3px solid #4CAF50' : '1px solid #ccc',
+        background: isActive ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.5)',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        width: '400px',
+        textAlign: 'left'
+    });
+
 
     const modalStyle = {
         background: 'rgba(0, 0, 0, 0.8)',
@@ -148,7 +222,9 @@ const MainMenu = ({ onStartGame }) => {
         borderRadius: '15px',
         maxWidth: '600px',
         textAlign: 'center',
-        border: '1px solid rgba(255,255,255,0.2)'
+        border: '1px solid rgba(255,255,255,0.2)',
+        maxHeight: '80vh',
+        overflowY: 'auto'
     };
 
     // --- VIEWS ---
@@ -157,7 +233,7 @@ const MainMenu = ({ onStartGame }) => {
         <div style={containerStyle}>
             <h1 style={{ fontSize: '64px', marginBottom: '40px', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>🚌 {t.title}</h1>
 
-            <button style={buttonStyle} onClick={handleStart}>{t.play}</button>
+            <button style={buttonStyle} onClick={handleOpenMapSelection}>{t.play}</button>
             <button style={{ ...buttonStyle, fontSize: '20px', background: 'rgba(255, 255, 255, 0.7)' }} onClick={() => setView('settings')}>{t.settings}</button>
             <button style={{ ...buttonStyle, fontSize: '20px', background: 'rgba(255, 255, 255, 0.7)' }} onClick={() => setView('help')}>{t.help}</button>
 
@@ -170,6 +246,69 @@ const MainMenu = ({ onStartGame }) => {
             </div>
         </div>
     );
+
+    const renderMapSelection = () => (
+        <div style={containerStyle}>
+            <h2 style={{ fontSize: '48px', marginBottom: '30px' }}>{t.selectMap}</h2>
+
+            <div style={{ marginBottom: '30px', maxHeight: '50vh', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '20px', borderRadius: '15px', width: '80%' }}>
+                {loadingMaps ? <p>{t.loadingMaps}</p> : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', color: 'white' }}>
+                        <thead>
+                            <tr>
+                                <th style={tableHeaderStyle}>{t.mapName}</th>
+                                <th style={tableHeaderStyle}>{t.mapDescription}</th>
+                                <th style={tableHeaderStyle}>{t.mapAuthor}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {maps.map(map => (
+                                <tr
+                                    key={map.id}
+                                    onClick={() => setSelectedMapId(map.id)}
+                                    style={{
+                                        cursor: 'pointer',
+                                        backgroundColor: selectedMapId === map.id ? 'rgba(76, 175, 80, 0.4)' : 'transparent',
+                                        transition: 'background 0.2s'
+                                    }}
+                                >
+                                    <td style={{ ...tableCellStyle, fontWeight: 'bold' }}>{map.name}</td>
+                                    <td style={tableCellStyle}>{map.description}</td>
+                                    <td style={{ ...tableCellStyle, fontSize: '0.9em', color: '#ccc' }}>{map.author || '-'}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+
+            <button style={{ ...buttonStyle, background: '#4CAF50', color: 'white' }} onClick={handleStart}>{t.play}</button>
+            <button style={{ ...buttonStyle, width: '200px', fontSize: '18px' }} onClick={() => setView('main')}>{t.back}</button>
+        </div>
+    );
+
+    const handleReloadAllMaps = async () => {
+        setUpdating(true);
+        setUpdateMsg(t.reloading);
+
+        try {
+            for (const map of maps) {
+                setUpdateMsg(`Update ${map.name}...`);
+                const configRes = await fetch(`/maps/${map.file}`);
+                const conf = await configRes.json();
+                await updateLocalBusData(map.id, conf.overpass.bbox, conf.overpass.queryRegex);
+            }
+            setUpdateMsg(t.updateSuccess);
+        } catch (e) {
+            console.error(e);
+            setUpdateMsg(t.updateError);
+        } finally {
+            setTimeout(() => {
+                setUpdating(false);
+                setUpdateMsg("");
+            }, 2000);
+        }
+    };
 
     const renderSettings = () => (
         <div style={containerStyle}>
@@ -191,11 +330,13 @@ const MainMenu = ({ onStartGame }) => {
                         </button>
                     </div>
 
-                    {/* Capital Input Removed */}
-
-                    <hr style={{ borderColor: 'rgba(255,255,255,0.2)', margin: '20px 0' }} />
-
-                    {/* Auto-update runs on start, button removed as requested */}
+                    <button
+                        style={{ ...buttonStyle, width: '100%', fontSize: '16px', background: '#2196F3', color: 'white', marginTop: '10px' }}
+                        onClick={handleReloadAllMaps}
+                        disabled={updating}
+                    >
+                        {updating ? t.reloading : t.reloadMaps}
+                    </button>
 
                     <hr style={{ borderColor: 'rgba(255,255,255,0.2)', margin: '20px 0' }} />
 
@@ -207,9 +348,10 @@ const MainMenu = ({ onStartGame }) => {
                         {loadingDebug ? "Lade..." : "Cache Prüfen"}
                     </button>
 
-                    {debugData && (
+                    {debugData && !debugData.error && (
                         <div style={{ marginTop: '15px', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '5px', fontSize: '12px', textAlign: 'left', overflowX: 'auto' }}>
                             <p><strong>Zeitstempel:</strong> {new Date(debugData.timestamp).toLocaleString()}</p>
+                            <p><strong>Map ID:</strong> {debugData.mapId}</p>
                             <p><strong>Größe:</strong> {debugData.sizeFormatted} ({debugData.dataSize} bytes)</p>
                             <p><strong>Vorschau:</strong></p>
                             <pre style={{ whiteSpace: 'pre-wrap', maxHeight: '100px', overflowY: 'auto' }}>{debugData.dataPreview}</pre>
@@ -247,6 +389,7 @@ const MainMenu = ({ onStartGame }) => {
 
     if (view === 'settings') return renderSettings();
     if (view === 'help') return renderHelp();
+    if (view === 'map-selection') return renderMapSelection();
     return renderMainMap();
 };
 

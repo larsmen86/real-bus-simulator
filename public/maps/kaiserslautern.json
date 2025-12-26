@@ -1,5 +1,7 @@
 {
   "cityName": "Kaiserslautern",
+  "description": "Die Heimatstadt des real-bus-simulator. Hügelig und herausfordernd.",
+  "author": "Lars Greipl",
   "mapCenter": [
     49.4447,
     7.7689
@@ -7,7 +9,7 @@
   "zoom": 13,
   "overpass": {
     "bbox": "49.38,7.68,49.48,7.85",
-    "queryRegex": "^(101|102|103|104|105|106|107|108|112|114|115|116|117)$"
+    "queryRegex": "^(101|102|103|104|105|106|107|108|109|111|112|114|115|116|117)$"
   },
   "initialFleet": {
     "101": [
@@ -64,6 +66,20 @@
         "type": "standard",
         "capacity": 50,
         "id": "108-0"
+      }
+    ],
+    "109": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "109-0"
+      }
+    ],
+    "111": [
+      {
+        "type": "standard",
+        "capacity": 50,
+        "id": "111-0"
       }
     ],
     "112": [

@@ -22,7 +22,9 @@ export default async function handler(req, res) {
     }
 
     const redis = new Redis(process.env.REDIS_URL);
-    const CACHE_KEY = 'bus_data_cache';
+    const mapId = (req.method === 'GET' ? req.query.mapId : req.body.mapId) || 'default';
+    const safeMapId = mapId.replace(/[^a-z0-9_-]/gi, '_'); // Sanitize
+    const CACHE_KEY = `bus_data_cache_${safeMapId}`;
     const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 Hours
 
     try {
@@ -45,8 +47,7 @@ export default async function handler(req, res) {
         }
 
         if (req.method === 'POST') {
-            const newData = req.body; // Expects raw overpass data
-
+            const newData = req.body.data; // Expects raw overpass data wrapped in { data: ... }
             if (!newData) {
                 await redis.quit();
                 return res.status(400).json({ error: "No data provided" });
@@ -60,7 +61,7 @@ export default async function handler(req, res) {
             await redis.set(CACHE_KEY, JSON.stringify(cacheEntry));
             await redis.quit();
 
-            return res.status(200).json({ success: true, timestamp: cacheEntry.timestamp });
+            return res.status(200).json({ success: true, timestamp: cacheEntry.timestamp, mapId: safeMapId });
         }
 
         await redis.quit();

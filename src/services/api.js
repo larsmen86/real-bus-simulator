@@ -27,7 +27,7 @@ const fetchWithRetry = async (url, options, retries = 3, backoff = 1000) => {
     }
 };
 
-export const updateLocalBusData = async (bbox = "49.38,7.68,49.48,7.85", regex = "^(101|102|103|104)$") => {
+export const updateLocalBusData = async (mapId, bbox = "49.38,7.68,49.48,7.85", regex = "^(101|102|103|104)$") => {
     // Dynamic query based on config
     const query = `
     [out:json][timeout:25];
@@ -39,12 +39,13 @@ export const updateLocalBusData = async (bbox = "49.38,7.68,49.48,7.85", regex =
     out body qt;
   `;
 
+    const CACHE_KEY = `bus_data_cache_${mapId}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased to 30s
 
     try {
-        console.log("Fetching from Overpass API...");
+        console.log(`Fetching from Overpass API for map ${mapId}...`);
         const response = await fetchWithRetry(OVERPASS_API_URL, {
             method: 'POST',
             body: `data=${encodeURIComponent(query)}`,
@@ -74,7 +75,7 @@ export const updateLocalBusData = async (bbox = "49.38,7.68,49.48,7.85", regex =
             await fetch('/api/bus_data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify({ data, mapId }) // WRAP data and pass mapId
             });
             console.log("Data saved to database cache via API.");
         } catch (apiError) {
@@ -88,10 +89,12 @@ export const updateLocalBusData = async (bbox = "49.38,7.68,49.48,7.85", regex =
     }
 };
 
-export const fetchBusRoute = async (bbox, regex) => {
+export const fetchBusRoute = async (mapId, bbox, regex) => {
+    const CACHE_KEY = `bus_data_cache_${mapId}`;
+
     // 0. Try Database Cache (API)
     try {
-        const response = await fetch('/api/bus_data');
+        const response = await fetch(`/api/bus_data?mapId=${mapId}`);
         if (response.ok) {
             const data = await response.json();
             console.log("Loaded bus data from DB Cache.");
@@ -112,17 +115,28 @@ export const fetchBusRoute = async (bbox, regex) => {
         console.warn("Error reading from localStorage", e);
     }
 
-    // 2. Try Local File (bus_data.json)
+    // 2. Try API (Update Local Data -> fetches Overpass -> saves to Redis/File)
     try {
-        console.log("No cache found. Trying local file /bus_data.json...");
-        const response = await fetch('/bus_data.json');
-        if (!response.ok) throw new Error("Local file load failed");
-        const data = await response.json();
-        console.log("Loaded from bus_data.json");
-        return data;
-    } catch (fallbackError) {
-        console.warn("Local file failed, attempting API fetch...", fallbackError);
-        // 3. Fallback to API
-        return updateLocalBusData(bbox, regex);
+        console.log("Cache missing/stale. Fetching from Overpass...");
+        return await updateLocalBusData(mapId, bbox, regex);
+    } catch (apiError) {
+        console.warn("API update failed, attempting emergency fallback...", apiError);
     }
+
+    // 3. Emergency Fallback: Local File (legacy fallback, only for kaiserslautern)
+    if (mapId === 'kaiserslautern') {
+        try {
+            console.log("Attempting local file /bus_data.json...");
+            const response = await fetch('/bus_data.json');
+            if (!response.ok) throw new Error("Local file load failed");
+            const data = await response.json();
+            console.log("Loaded from bus_data.json");
+            return data;
+        } catch (fallbackError) {
+            console.error("All fetch methods failed.", fallbackError);
+            throw new Error("Could not load bus data.");
+        }
+    }
+
+    throw new Error("Could not load bus data (API failed and no local fallback).");
 };

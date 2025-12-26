@@ -63,13 +63,21 @@ app.post('/api/highscores', async (req, res) => {
 });
 
 
-const BUS_CACHE_FILE = path.join(__dirname, 'bus_data_cache.json');
+const getCacheFile = (mapId) => {
+    // Sanitize mapId to prevent directory traversal
+    const safeMapId = (mapId || 'default').replace(/[^a-z0-9_-]/gi, '_');
+    return path.join(__dirname, `bus_data_cache_${safeMapId}.json`);
+};
+
 const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 Hours
 
 // Get Bus Data Cache
 app.get('/api/bus_data', async (req, res) => {
     try {
-        const data = await fs.readFile(BUS_CACHE_FILE, 'utf-8');
+        const mapId = req.query.mapId;
+        const cacheFile = getCacheFile(mapId);
+
+        const data = await fs.readFile(cacheFile, 'utf-8');
         const cached = JSON.parse(data);
         const age = Date.now() - cached.timestamp;
 
@@ -91,7 +99,9 @@ app.get('/api/bus_data', async (req, res) => {
 // Save Bus Data Cache
 app.post('/api/bus_data', async (req, res) => {
     try {
-        const newData = req.body;
+        const newData = req.body.data;
+        const mapId = req.body.mapId; // Expect mapId in body
+
         if (!newData) return res.status(400).json({ error: "No data" });
 
         const cacheEntry = {
@@ -99,8 +109,9 @@ app.post('/api/bus_data', async (req, res) => {
             data: newData
         };
 
-        await fs.writeFile(BUS_CACHE_FILE, JSON.stringify(cacheEntry, null, 2));
-        res.json({ success: true, timestamp: cacheEntry.timestamp });
+        const cacheFile = getCacheFile(mapId);
+        await fs.writeFile(cacheFile, JSON.stringify(cacheEntry, null, 2));
+        res.json({ success: true, timestamp: cacheEntry.timestamp, mapId });
     } catch (error) {
         console.error('Error saving bus cache:', error);
         res.status(500).json({ error: 'Failed to save cache' });
@@ -110,8 +121,11 @@ app.post('/api/bus_data', async (req, res) => {
 // Debug Bus Data Cache
 app.get('/api/bus_data_debug', async (req, res) => {
     try {
-        const stats = await fs.stat(BUS_CACHE_FILE);
-        const data = await fs.readFile(BUS_CACHE_FILE, 'utf-8');
+        const mapId = req.query.mapId;
+        const cacheFile = getCacheFile(mapId);
+
+        const stats = await fs.stat(cacheFile);
+        const data = await fs.readFile(cacheFile, 'utf-8');
         const cached = JSON.parse(data);
 
         const sizeBytes = stats.size;
@@ -124,6 +138,7 @@ app.get('/api/bus_data_debug', async (req, res) => {
         }
 
         res.json({
+            mapId: mapId || 'default',
             timestamp: cached.timestamp,
             dataSize: sizeBytes,
             sizeFormatted: sizeFormatted,

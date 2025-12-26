@@ -38,7 +38,12 @@ export const translations = {
         updateLines: "Buslinien aktualisieren",
         updating: "Aktualisiere...",
         updateSuccess: "Aktualisiert!",
-        updateError: "Fehler! Seite bitte neu laden"
+        updateError: "Fehler! Seite bitte neu laden",
+        mapName: "Name",
+        mapDescription: "Beschreibung",
+        mapAuthor: "Ersteller",
+        reloadMaps: "Karten neu laden (API)",
+        reloading: "Lade neu..."
     },
     en: {
         money: "Money",
@@ -79,6 +84,11 @@ export const translations = {
         updateLines: "Update Bus Lines",
         updating: "Updating...",
         updateSuccess: "Updated!",
-        updateError: "Error!"
+        updateError: "Error!",
+        mapName: "Name",
+        mapDescription: "Description",
+        mapAuthor: "Author",
+        reloadMaps: "Reload Maps (API)",
+        reloading: "Reloading..."
     }
 };

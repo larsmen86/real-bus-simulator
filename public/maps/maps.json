@@ -1,0 +1,9 @@
+[
+    {
+        "id": "kaiserslautern",
+        "name": "Kaiserslautern",
+        "file": "kaiserslautern.json",
+        "description": "Die Heimatstadt des real-bus-simulator. Hügelig und herausfordernd.",
+        "previewImage": "kl_preview.jpg"
+    }
+]

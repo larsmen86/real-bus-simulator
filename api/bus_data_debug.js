@@ -26,7 +26,11 @@ export default async function handler(req, res) {
     }
 
     const redis = new Redis(process.env.REDIS_URL);
-    const CACHE_KEY = 'bus_data_cache';
+
+    // Get mapId from query
+    const mapId = req.query.mapId || 'default';
+    const safeMapId = mapId.replace(/[^a-z0-9_-]/gi, '_');
+    const CACHE_KEY = `bus_data_cache_${safeMapId}`;
 
     try {
         const raw = await redis.get(CACHE_KEY);
