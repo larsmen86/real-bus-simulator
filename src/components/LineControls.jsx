@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { translations } from '../utils/translations';
+import './Responsive.css';
 
 const LineControls = ({
     routes,
@@ -43,22 +44,26 @@ const LineControls = ({
 
     const activeBuses = Object.values(busStats || {}).sort((a, b) => a.line.localeCompare(b.line));
 
+    // Mobile State
+    const [mobileActivePanel, setMobileActivePanel] = useState(null); // 'left', 'right', or null
+
+    const toggleMobile = () => {
+        setMobileActivePanel(prev => {
+            if (prev === 'left') return 'right';
+            if (prev === 'right') return null;
+            return 'left';
+        });
+    };
+
     return (
         <>
+            {/* Mobile Toggle Button */}
+            <button className="mobile-toggle-btn" onClick={toggleMobile}>
+                {mobileActivePanel === 'left' ? '📊' : (mobileActivePanel === 'right' ? '❌' : '🚌')}
+            </button>
+
             {/* LEFT PANEL: CONTROLS & MANAGEMENT */}
-            <div style={{
-                position: 'absolute',
-                top: '20px',
-                left: '20px',
-                background: 'white',
-                padding: '15px',
-                borderRadius: '8px',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                zIndex: 9999, // Bumped z-index
-                minWidth: '300px',
-                maxHeight: '90vh',
-                overflowY: 'auto'
-            }}>
+            <div className={`game-panel panel-left ${mobileActivePanel === 'left' ? 'open-mobile' : ''}`}>
                 {/* Money Header */}
                 <div style={{ textAlign: 'center', marginBottom: '15px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
                     <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>{t.money}</div>
@@ -167,19 +172,7 @@ const LineControls = ({
             </div>
 
             {/* RIGHT PANEL: STATS */}
-            <div style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                background: 'white',
-                padding: '15px',
-                borderRadius: '8px',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                zIndex: 9999, // Bumped z-index
-                minWidth: '300px', // Wider implementation
-                maxHeight: '90vh',
-                overflowY: 'auto'
-            }}>
+            <div className={`game-panel panel-right ${mobileActivePanel === 'right' ? 'open-mobile' : ''}`}>
                 {/* GAME HEADER */}
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px', borderBottom: '2px solid #333', paddingBottom: '10px' }}>
                     <div style={{ textAlign: 'center' }}>

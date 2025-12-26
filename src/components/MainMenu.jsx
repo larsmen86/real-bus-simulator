@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import pkg from '../../package.json';
 import { updateLocalBusData, fetchBusRoute } from '../services/api';
 import { translations } from '../utils/translations';
+import './Responsive.css';
 
 const MainMenu = ({ onStartGame }) => {
     // Menu States: 'main', 'settings', 'help', 'map-selection'
@@ -165,77 +166,17 @@ const MainMenu = ({ onStartGame }) => {
         }
     };
 
-    // Shared Styles
-    const containerStyle = {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)',
-        color: 'white',
-        fontFamily: 'Arial, sans-serif'
-    };
-
-    const buttonStyle = {
-        padding: '15px 40px',
-        margin: '10px',
-        fontSize: '24px',
-        borderRadius: '8px',
-        border: 'none',
-        cursor: 'pointer',
-        width: '300px',
-        background: 'rgba(255, 255, 255, 0.9)',
-        color: '#333',
-        fontWeight: 'bold',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-        transition: 'transform 0.1s'
-    };
-
-    const tableHeaderStyle = {
-        padding: '15px',
-        textAlign: 'left',
-        borderBottom: '2px solid rgba(255,255,255,0.3)',
-        fontSize: '18px'
-    };
-
-    const tableCellStyle = {
-        padding: '15px',
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
-    };
-
-    const mapCardStyle = (isActive) => ({
-        padding: '10px',
-        margin: '10px',
-        border: isActive ? '3px solid #4CAF50' : '1px solid #ccc',
-        background: isActive ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.5)',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        width: '400px',
-        textAlign: 'left'
-    });
-
-
-    const modalStyle = {
-        background: 'rgba(0, 0, 0, 0.8)',
-        padding: '30px',
-        borderRadius: '15px',
-        maxWidth: '600px',
-        textAlign: 'center',
-        border: '1px solid rgba(255,255,255,0.2)',
-        maxHeight: '80vh',
-        overflowY: 'auto'
-    };
+    // Styles are now handled in Responsive.css
 
     // --- VIEWS ---
 
     const renderMainMap = () => (
-        <div style={containerStyle}>
-            <h1 style={{ fontSize: '64px', marginBottom: '40px', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>🚌 {t.title}</h1>
+        <div className="main-menu-container">
+            <h1 className="main-menu-title">🚌 {t.title}</h1>
 
-            <button style={buttonStyle} onClick={handleOpenMapSelection}>{t.play}</button>
-            <button style={{ ...buttonStyle, fontSize: '20px', background: 'rgba(255, 255, 255, 0.7)' }} onClick={() => setView('settings')}>{t.settings}</button>
-            <button style={{ ...buttonStyle, fontSize: '20px', background: 'rgba(255, 255, 255, 0.7)' }} onClick={() => setView('help')}>{t.help}</button>
+            <button className="menu-button" onClick={handleOpenMapSelection}>{t.play}</button>
+            <button className="menu-button secondary" onClick={() => setView('settings')}>{t.settings}</button>
+            <button className="menu-button secondary" onClick={() => setView('help')}>{t.help}</button>
 
             <div style={{ marginTop: '20px', fontSize: '16px', color: '#ccc' }}>
                 {updating ? "🔄 " + t.updating : updateMsg === t.updateSuccess ? "✅ " + t.updateSuccess : updateMsg}
@@ -248,17 +189,17 @@ const MainMenu = ({ onStartGame }) => {
     );
 
     const renderMapSelection = () => (
-        <div style={containerStyle}>
+        <div className="main-menu-container">
             <h2 style={{ fontSize: '48px', marginBottom: '30px' }}>{t.selectMap}</h2>
 
-            <div style={{ marginBottom: '30px', maxHeight: '50vh', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '20px', borderRadius: '15px', width: '80%' }}>
+            <div className="map-selection-box">
                 {loadingMaps ? <p>{t.loadingMaps}</p> : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', color: 'white' }}>
+                    <table className="map-table">
                         <thead>
                             <tr>
-                                <th style={tableHeaderStyle}>{t.mapName}</th>
-                                <th style={tableHeaderStyle}>{t.mapDescription}</th>
-                                <th style={tableHeaderStyle}>{t.mapAuthor}</th>
+                                <th>{t.mapName}</th>
+                                <th>{t.mapDescription}</th>
+                                <th>{t.mapAuthor}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -266,15 +207,11 @@ const MainMenu = ({ onStartGame }) => {
                                 <tr
                                     key={map.id}
                                     onClick={() => setSelectedMapId(map.id)}
-                                    style={{
-                                        cursor: 'pointer',
-                                        backgroundColor: selectedMapId === map.id ? 'rgba(76, 175, 80, 0.4)' : 'transparent',
-                                        transition: 'background 0.2s'
-                                    }}
+                                    className={`map-row ${selectedMapId === map.id ? 'selected' : ''}`}
                                 >
-                                    <td style={{ ...tableCellStyle, fontWeight: 'bold' }}>{map.name}</td>
-                                    <td style={tableCellStyle}>{map.description}</td>
-                                    <td style={{ ...tableCellStyle, fontSize: '0.9em', color: '#ccc' }}>{map.author || '-'}</td>
+                                    <td style={{ fontWeight: 'bold' }}>{map.name}</td>
+                                    <td>{map.description}</td>
+                                    <td style={{ fontSize: '0.9em', color: '#ccc' }}>{map.author || '-'}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -282,8 +219,8 @@ const MainMenu = ({ onStartGame }) => {
                 )}
             </div>
 
-            <button style={{ ...buttonStyle, background: '#4CAF50', color: 'white' }} onClick={handleStart}>{t.play}</button>
-            <button style={{ ...buttonStyle, width: '200px', fontSize: '18px' }} onClick={() => setView('main')}>{t.back}</button>
+            <button className="menu-button primary" onClick={handleStart}>{t.play}</button>
+            <button className="menu-button secondary" onClick={() => setView('main')}>{t.back}</button>
         </div>
     );
 
@@ -311,8 +248,8 @@ const MainMenu = ({ onStartGame }) => {
     };
 
     const renderSettings = () => (
-        <div style={containerStyle}>
-            <div style={modalStyle}>
+        <div className="main-menu-container">
+            <div className="menu-modal">
                 <h2>{t.settings}</h2>
 
                 <div style={{ textAlign: 'left', margin: '20px 0' }}>
@@ -331,7 +268,8 @@ const MainMenu = ({ onStartGame }) => {
                     </div>
 
                     <button
-                        style={{ ...buttonStyle, width: '100%', fontSize: '16px', background: '#2196F3', color: 'white', marginTop: '10px' }}
+                        className="menu-button"
+                        style={{ width: '100%', fontSize: '16px', background: '#2196F3', color: 'white', marginTop: '10px', padding: '10px' }}
                         onClick={handleReloadAllMaps}
                         disabled={updating}
                     >
@@ -342,7 +280,8 @@ const MainMenu = ({ onStartGame }) => {
 
                     <h3>Bus Data Debugger</h3>
                     <button
-                        style={{ ...buttonStyle, width: '100%', fontSize: '16px', background: '#FF9800', color: 'white', marginTop: '10px' }}
+                        className="menu-button"
+                        style={{ width: '100%', fontSize: '16px', background: '#FF9800', color: 'white', marginTop: '10px', padding: '10px' }}
                         onClick={handleCheckDebug}
                     >
                         {loadingDebug ? "Lade..." : "Cache Prüfen"}
@@ -370,19 +309,19 @@ const MainMenu = ({ onStartGame }) => {
                     <p style={{ fontSize: '12px', color: '#aaa', marginTop: '10px' }}>{t.createdBy}</p>
                 </div>
 
-                <button style={{ ...buttonStyle, width: '200px', fontSize: '18px' }} onClick={() => setView('main')}>{t.back}</button>
+                <button className="menu-button secondary" onClick={() => setView('main')}>{t.back}</button>
             </div>
         </div>
     );
 
     const renderHelp = () => (
-        <div style={containerStyle}>
-            <div style={modalStyle}>
+        <div className="main-menu-container">
+            <div className="menu-modal">
                 <h2>{t.helpTitle}</h2>
                 <p style={{ fontSize: '18px', lineHeight: '1.6', textAlign: 'justify', margin: '20px 0' }}>
                     {t.helpText}
                 </p>
-                <button style={{ ...buttonStyle, width: '200px', fontSize: '18px' }} onClick={() => setView('main')}>{t.back}</button>
+                <button className="menu-button secondary" onClick={() => setView('main')}>{t.back}</button>
             </div>
         </div>
     );

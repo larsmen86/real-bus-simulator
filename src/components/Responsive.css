@@ -1,0 +1,219 @@
+/* Global Box Sizing */
+* {
+    box-sizing: border-box;
+}
+
+/* --- Main Menu Styles --- */
+.main-menu-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: white;
+    font-family: Arial, sans-serif; /* Keep consistent with previous inline style */
+    padding: 20px;
+}
+
+.main-menu-title {
+    font-size: 64px;
+    margin-bottom: 40px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    text-align: center;
+}
+
+.menu-button {
+    padding: 15px 40px;
+    margin: 10px;
+    font-size: 24px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    width: 300px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.1s, background 0.2s;
+}
+
+.menu-button:active {
+    transform: scale(0.98);
+}
+
+.menu-button.secondary {
+    font-size: 20px;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.menu-button.primary {
+    background: #4CAF50;
+    color: white;
+}
+
+.menu-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Map Selection */
+.map-selection-box {
+    margin-bottom: 30px;
+    max-height: 50vh;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 15px;
+    width: 80%;
+}
+
+.map-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: white;
+}
+
+.map-table th {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+    font-size: 18px;
+}
+
+.map-table td {
+    padding: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.map-row {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.map-row.selected {
+    background-color: rgba(76, 175, 80, 0.4);
+}
+
+/* Modal / Settings */
+.menu-modal {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* --- Line Controls / Game UI Styles --- */
+.game-panel {
+    position: absolute;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+    max-height: 90vh;
+    overflow-y: auto;
+    width: 300px; /* Default width */
+    transition: all 0.3s ease;
+}
+
+.panel-left {
+    top: 20px;
+    left: 20px;
+}
+
+.panel-right {
+    top: 20px;
+    right: 20px;
+}
+
+/* Mobile Toggle Button (Visible only on mobile) */
+.mobile-toggle-btn {
+    display: none;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #FF9800; /* Distinct color */
+    color: white;
+    border: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    z-index: 10000;
+    font-size: 24px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* --- Responsive Media Queries (Mobile) --- */
+@media (max-width: 768px) {
+    /* Main Menu Mobile */
+    .main-menu-title {
+        font-size: 42px; /* Smaller title */
+        margin-bottom: 20px;
+    }
+
+    .menu-button {
+        width: 100%; /* Full width buttons */
+        max-width: 350px;
+        font-size: 20px;
+        padding: 12px;
+    }
+    
+    .map-selection-box {
+        width: 100%;
+        padding: 10px;
+    }
+
+    /* Hide table headers on very small screens if needed, or scroll */
+    .map-table th, .map-table td {
+        padding: 10px 5px;
+        font-size: 14px;
+    }
+    
+    .menu-modal {
+        padding: 15px;
+        max-height: 90vh;
+    }
+
+    /* Game UI Mobile */
+    .mobile-toggle-btn {
+        display: flex; /* Show toggle button */
+    }
+
+    .game-panel {
+        position: fixed; /* Fixed to viewport */
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: auto; /* Override top */
+        width: 100%;
+        border-radius: 15px 15px 0 0; /* Rounded top corners only */
+        max-height: 60vh; /* Takes up bottom part of screen */
+        transform: translateY(110%); /* Hidden by default */
+    }
+
+    .game-panel.open-mobile {
+        transform: translateY(0); /* Slide up */
+    }
+    
+    /* When one panel is open, ensure it sits on top */
+    .panel-left.open-mobile {
+        z-index: 10001;
+    }
+    .panel-right.open-mobile {
+        z-index: 10001;
+    }
+
+    /* Hide non-active panel completely to avoid interaction issues */
+    .game-panel:not(.open-mobile) {
+        display: none;
+    }
+}
